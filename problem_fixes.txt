@@ -1,0 +1,8 @@
+how to fix the raylib lib not being found cmake:
+install x64-windows version of raylib
+
+how to fix timesync issue:
+rate-limit player updates
+
+how to fix ide tweaking out not detecting raylib or random errors but it compiles fine:
+File -> "Repair IDE"
