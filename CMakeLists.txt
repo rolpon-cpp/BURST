@@ -37,11 +37,15 @@ add_executable(BURST main.cpp
         network/Player.h
         network/Utils.cpp
         network/Packet.h
-        network/client/EventActions.h
-        network/client/EventActions.cpp
+        network/client/ClientEventActions.h
+        network/client/ClientEventActions.cpp
         game/Game.cpp
         game/Game.h
         game/Resources.cpp
-        game/Resources.h)
+        game/Resources.h
+        game/Camera.cpp
+        game/Camera.h
+        network/server/ServerEventActions.h
+        network/server/ServerEventActions.cpp)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)

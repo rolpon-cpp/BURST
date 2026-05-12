@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
-#include "EventActions.h"
+#include "ClientEventActions.h"
 #include "Client.h"
 #include "../Utils.h"
 #include "../Packet.h"
@@ -14,13 +14,19 @@
 
 using namespace std;
 
+Client::Client(Game* game)
+{
+    this->game = game;
+    Reset();
+}
+
 Client::Client()
 {
     Reset();
-    EventActions[TIME_SYNC] = &TimeSyncAction;
-    EventActions[PLAYER_JOIN] = &PlayerJoinAction;
-    EventActions[PLAYER_LEFT] = &PlayerLeftAction;
-    EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
+}
+
+Client::~Client()
+{
 }
 
 void Client::Connect(std::string IPAddress, int Port)
@@ -62,6 +68,8 @@ void Client::Connect(std::string IPAddress, int Port)
         return;
     }
 
+    printf("Client successfully connected!\n");
+
     Connected = true;
 }
 
@@ -71,13 +79,13 @@ void Client::Disconnect()
         return;
     uint8_t disconnected = false;
 
-    printf("Disconnecting...");
+    printf("Disconnecting...\n");
 
     if (Host != nullptr)
     {
         ENetEvent client_event;
         enet_peer_disconnect(Peer, 0);
-        while (enet_host_service(Host, &client_event, 500) > 0)
+        while (enet_host_service(Host, &client_event, 500) > 0 && !disconnected)
         {
             switch (client_event.type)
             {
@@ -97,18 +105,33 @@ void Client::Disconnect()
         printf("Disconnection failed, force disconnection triggered.\n");
 
     if (Peer != nullptr && !disconnected)
+    {
         enet_peer_reset(Peer);
+        Peer = nullptr;
+    }
 
     if (Host != nullptr)
+    {
         enet_host_destroy(Host);
+        Host = nullptr;
+    }
 
     Reset();
 }
 
 void Client::Reset()
 {
-    Peer = { 0 };
-    Host = { 0 };
+    if (Host != nullptr)
+        delete Host;
+    if (Peer != nullptr)
+        delete Peer;
+    EventActions.clear();
+    EventActions[TIME_SYNC] = &TimeSyncAction;
+    EventActions[PLAYER_JOIN] = &PlayerJoinAction;
+    EventActions[PLAYER_LEFT] = &PlayerLeftAction;
+    EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
+    Peer = nullptr;
+    Host = nullptr;
     ServerTimeOffset = 0;
     LastUpdatedState = 0;
     OtherPlayers.clear();
@@ -152,6 +175,7 @@ void Client::Update()
         }
     }
 }
+
 std::unordered_map<int32_t, Player>& Client::GetPlayers()
 {
     return OtherPlayers;

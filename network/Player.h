@@ -4,8 +4,8 @@
 
 #ifndef ALLS_PLAYER_H
 #define ALLS_PLAYER_H
-#include <raymath.h>
 #include <vector>
+#include "raymath.h"
 
 #pragma pack(push, 1)
 struct PlayerJoin {
@@ -30,18 +30,24 @@ struct PlayerState {
 };
 #pragma pack(pop)
 
+bool CompareStates(PlayerState State1, PlayerState State2);
+
+class Game;
+
 class Player {
 public:
+    Game *game;
     int32_t PlayerID = -1;
     PlayerState CurrentState = { 0 };
     PlayerState LastState = { 0 };
     PlayerState LocalState = { 0 };
     std::vector<PlayerState> PreviousPlayerStates;
-    Player(float X, float Y, float Speed);
-    Player(PlayerState State);
+    Player(float X, float Y, float Speed, Game* game);
+    Player(PlayerState State, Game* game);
     Player();
     ~Player();
-    void SmoothPlayerState(double ServerTime, double Delay);
+    void Update();
+    void SmoothPlayerState(double ServerTime, double Delay, bool Extrapolate = true);
     void MovePlayer(double ServerTime);
 };
 

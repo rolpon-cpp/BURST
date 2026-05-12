@@ -10,17 +10,27 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOGDI
 #define NOUSER
+#include "Camera.h"
 #include "raylib.h"
 
 class Game
 {
 public:
+    // Player & Camera
+    Player LocalPlayer;
+    BurstCamera GameCamera;
+
+    // Network
     Client GameClient;
+
+    // Managers
     Resources GameResources;
 
     Game();
     ~Game();
 
+    void Connect(string IPAddress, int Port);
+    void Disconnect();
     void Update();
     void Quit();
 };

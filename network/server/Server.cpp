@@ -3,202 +3,245 @@
 //
 
 #include "Server.h"
-#include "../Player.h"
 #include <iostream>
-#include <raymath.h>
-#include <thread>
-#include <unordered_map>
-#include "../Packet.h"
-#include "../Utils.h"
 #include "enet/enet.h"
+#include "../Utils.h"
+#include "../Player.h"
+#include "ServerEventActions.h"
 
 using namespace std;
 
-ENetHost* server = {0};
-bool ServerRunning = true;
-unordered_map<int32_t, ENetPeer*> peers;
-
-double LastSyncedTime = GetTimeUtils();
-
-void StartServer(std::string IPAddress, int Port, int MaxClients)
+Server::Server()
 {
-    ServerRunning = true;
+    Reset();
+}
 
-    ENetAddress server_address = {0};
-    ENetEvent server_event;
+Server::~Server()
+{
+}
 
-    enet_address_set_host_ip(&server_address, IPAddress.c_str());
-    server_address.port = Port;
+void Server::Reset()
+{
+    if (Host != nullptr)
+        delete Host;
+    Players.clear();
+    Host = nullptr;
+    Running = false;
+    LastSyncedTime = 0.0f;
+    LatestPlayerID = -1;
+    PacketEventActions.clear();
+    PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
+}
 
-    server = enet_host_create(&server_address, MaxClients, 2, 0, 0);
+void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
+{
+    if (Running)
+        return;
+    Reset();
+    printf("Starting server...\n");
 
-    if (server == NULL)
+    ENetAddress Address;
+
+    enet_address_set_host_ip(&Address, IPAddress.c_str());
+    Address.port = Port;
+
+    Host = enet_host_create(&Address, MaxClients, 2, 0, 0);
+
+    if (Host == NULL)
     {
-        std::cout << "Error creating server\n";
+        std::cout << "Error creating server host.\n";
+        return;
     }
 
-    std::cout << "server is running\n";
+    printf("ENet server host successfully created.\n");
 
-    int32_t latest_player_id = 1;
+    printf("Server successfully connected!\n");
 
-    while (ServerRunning)
+    LatestPlayerID = 1;
+    Running = true;
+}
+
+void Server::PlayerConnect(ENetEvent& Event)
+{
+    LatestPlayerID += 1;
+    printf("Player ID %d joined the game!\n", LatestPlayerID);
+    Player* newPlayer = new Player();
+    newPlayer->PlayerID = LatestPlayerID;
+    Event.peer->data = newPlayer;
+    Players[LatestPlayerID] = Event.peer;
+
+    // Sending time sync to new player
+    Packet myPacket = {};
+    myPacket.type = TIME_SYNC;
+    myPacket.timestamp = GetTimeUtils();
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+    enet_peer_send(Event.peer, 0, packet);
+
+    for (auto [name,peer] : Players)
     {
-        int active = enet_host_service(server, &server_event, 50);
-        if (active > 0)
+        auto* p = static_cast<Player*>(peer->data);
+        if (p->PlayerID != newPlayer->PlayerID)
         {
-            switch (server_event.type)
-            {
-            case ENET_EVENT_TYPE_CONNECT:
-                {
-                    printf("A new client connected from %x:%u.\n", server_event.peer->address.host,
-                           server_event.peer->address.port);
-                    Player* newPlayer = new Player();
-                    newPlayer->PlayerID = latest_player_id;
-                    server_event.peer->data = newPlayer;
-                    peers[latest_player_id] = server_event.peer;
+            // Sending player join to existing player
+            myPacket = {};
+            myPacket.type = PLAYER_JOIN;
+            myPacket.timestamp = GetTimeUtils();
 
-                    // Sending time sync to new player
-                    Packet myPacket = {};
-                    myPacket.type = TIME_SYNC;
-                    myPacket.timestamp = GetTimeUtils();
-                    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-                    enet_peer_send(server_event.peer, 0, packet);
+            PlayerJoin playerJoin = {0};
+            playerJoin.id = newPlayer->PlayerID;
+            playerJoin.starting_location = {0, 0};
+            memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
 
-                    for (auto [name,peer] : peers)
-                    {
-                        auto* p = static_cast<Player*>(peer->data);
-                        if (p->PlayerID != newPlayer->PlayerID)
-                        {
-                            // Sending player join to existing player
-                            myPacket = {};
-                            myPacket.type = PLAYER_JOIN;
-                            myPacket.timestamp = GetTimeUtils();
+            packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(peer, 0, packet);
 
-                            PlayerJoin playerJoin = {0};
-                            playerJoin.id = newPlayer->PlayerID;
-                            playerJoin.starting_location = {0, 0};
-                            memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
+            // Sending player join to new player
+            myPacket = {};
+            myPacket.timestamp = GetTimeUtils();
+            myPacket.type = PLAYER_JOIN;
 
-                            packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-                            enet_peer_send(peer, 0, packet);
+            playerJoin = {0};
+            playerJoin.id = p->PlayerID;
+            playerJoin.starting_location = p->CurrentState.position;
+            memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
 
-                            // Sending player join to new player
-                            myPacket = {};
-                            myPacket.timestamp = GetTimeUtils();
-                            myPacket.type = PLAYER_JOIN;
-
-                            playerJoin = {0};
-                            playerJoin.id = p->PlayerID;
-                            playerJoin.starting_location = p->CurrentState.position;
-                            memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
-
-                            packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-                            enet_peer_send(server_event.peer, 0, packet);
-
-                        }
-                    }
-                    latest_player_id += 1;
-                    std::cout << "added " << latest_player_id << "\n";
-                    break;
-                }
-            case ENET_EVENT_TYPE_RECEIVE:
-                {
-                    Packet plrPacket;
-                    if (server_event.packet->dataLength != sizeof(Packet))
-                    {
-                        enet_packet_destroy(server_event.packet);
-                        break;
-                    }
-                    memcpy(&plrPacket, server_event.packet->data, server_event.packet->dataLength);
-                    switch (plrPacket.type)
-                    {
-                    case PLAYER_UPDATE:
-                        {
-                            auto* player = static_cast<Player*>(server_event.peer->data);
-                            player->LastState = player->CurrentState;
-
-                            memcpy(&player->CurrentState, &plrPacket.data, sizeof(PlayerState));
-
-                            player->CurrentState.id = player->PlayerID;
-                            player->LastState.id = player->PlayerID;
-                            break;
-                        }
-                    }
-                    enet_packet_destroy(server_event.packet);
-
-                    break;
-                }
-            case ENET_EVENT_TYPE_DISCONNECT:
-                {
-                    printf("disconnected.\n");
-                    Player* oldPlayer = reinterpret_cast<Player*>(server_event.peer->data);
-                    for (auto [name, peer] : peers)
-                    {
-                        auto* p = static_cast<Player*>(peer->data);
-                        if (p->PlayerID != oldPlayer->PlayerID)
-                        {
-                            Packet myPacket;
-                            myPacket.type = PLAYER_LEFT;
-                            myPacket.timestamp = GetTimeUtils();
-
-                            PlayerLeft left = {0};
-                            left.id = oldPlayer->PlayerID;
-                            memcpy(&myPacket.data, &left, sizeof(left));
-
-                            ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket),
-                                                                    ENET_PACKET_FLAG_RELIABLE);
-                            enet_peer_send(peer, 0, packet);
-                        }
-                    }
-                    peers.erase(oldPlayer->PlayerID);
-                    delete oldPlayer;
-                    cout << "new size " << peers.size() << "\n";
-                    break;
-                }
-            case ENET_EVENT_TYPE_NONE:
-                break;
-            }
+            packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(Event.peer, 0, packet);
         }
-        if (GetTimeUtils() - LastSyncedTime >= 1)
-        {
-            for (auto [id, peer] : peers)
-            {
-                Packet myPacket;
-                myPacket.type = TIME_SYNC;
-                myPacket.timestamp = GetTimeUtils();
-                ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-                enet_peer_send(peer, 0, packet);
-            }
-            LastSyncedTime = GetTimeUtils();
-        }
-        if (peers.size() > 1)
-        {
-            for (auto [id, peer] : peers)
-            {
-                for (auto [other_id, other_peer] : peers)
-                {
-                    if (other_id != id)
-                    {
-                        auto* player = reinterpret_cast<Player*>(other_peer->data);
-                        Packet myPacket;
-                        myPacket.type = PLAYER_UPDATE;
-                        myPacket.timestamp = player->CurrentState.timestamp;
-
-                        memcpy(&myPacket.data, &player->CurrentState, sizeof(player->CurrentState));
-
-                        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
-                        enet_peer_send(peer, 0, packet);
-                    }
-                }
-            }
-        }
-
-        enet_host_flush(server);
     }
 }
 
-void StopServer()
+void Server::PlayerDisconnect(ENetEvent& Event)
 {
-    if (server != nullptr)
-        enet_host_destroy(server);
+    Player* OldPlayer = reinterpret_cast<Player*>(Event.peer->data);
+    printf("Player ID %d has left the game!\n", OldPlayer->PlayerID);
+    for (auto [name, peer] : Players)
+    {
+        auto* p = static_cast<Player*>(peer->data);
+        if (p->PlayerID != OldPlayer->PlayerID)
+        {
+            Packet myPacket;
+            myPacket.type = PLAYER_LEFT;
+            myPacket.timestamp = GetTimeUtils();
+
+            PlayerLeft left = {0};
+            left.id = OldPlayer->PlayerID;
+            memcpy(&myPacket.data, &left, sizeof(left));
+
+            ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket),
+                                                    ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(peer, 0, packet);
+        }
+    }
+    Players.erase(OldPlayer->PlayerID);
+    delete OldPlayer;
+}
+
+void Server::HandleEvents()
+{
+    if (!Running)
+        return;
+    ENetEvent Event;
+    int Active = enet_host_service(Host, &Event, 50);
+    if (Active > 0)
+    {
+        switch (Event.type)
+        {
+        case ENET_EVENT_TYPE_CONNECT:
+            {
+                PlayerConnect(Event);
+                break;
+            }
+        case ENET_EVENT_TYPE_RECEIVE:
+            {
+                if (Event.packet->dataLength != sizeof(Packet))
+                {
+                    enet_packet_destroy(Event.packet);
+                    return;
+                }
+
+                Packet packet;
+
+                memcpy(&packet, Event.packet->data, Event.packet->dataLength);
+
+                if (PacketEventActions.contains(packet.type))
+                    PacketEventActions[packet.type](*this, packet, Event);
+
+                enet_packet_destroy(Event.packet);
+                break;
+            }
+        case ENET_EVENT_TYPE_DISCONNECT:
+            {
+                PlayerDisconnect(Event);
+                break;
+            }
+        case ENET_EVENT_TYPE_NONE:
+            break;
+        }
+    }
+}
+
+void Server::HandleTimeSync()
+{
+    if (!Running)
+        return;
+    if (GetTimeUtils() - LastSyncedTime >= 1)
+    {
+        for (auto [id, peer] : Players)
+        {
+            Packet myPacket;
+            myPacket.type = TIME_SYNC;
+            myPacket.timestamp = GetTimeUtils();
+            ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(peer, 0, packet);
+        }
+        LastSyncedTime = GetTimeUtils();
+    }
+}
+
+void Server::HandlePlayerStates()
+{
+    if (!Running)
+        return;
+    if (Players.size() <= 1)
+        return;
+
+    for (auto [id, peer] : Players)
+    {
+        for (auto [other_id, other_peer] : Players)
+        {
+            auto* player = reinterpret_cast<Player*>(other_peer->data);
+            if (other_id != id && CompareStates(player->CurrentState, player->LocalState))
+            {
+                player->LocalState = player->CurrentState;
+
+                Packet myPacket;
+                myPacket.type = PLAYER_UPDATE;
+                myPacket.timestamp = player->CurrentState.timestamp;
+
+                memcpy(&myPacket.data, &player->CurrentState, sizeof(player->CurrentState));
+
+                ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+                enet_peer_send(peer, 0, packet);
+            }
+        }
+    }
+
+    enet_host_flush(Host);
+}
+
+void Server::UpdateServer()
+{
+    HandleEvents();
+    HandleTimeSync();
+    HandlePlayerStates();
+}
+
+void Server::StopServer()
+{
+    if (!Running)
+        return;
+    if (Host != nullptr)
+        enet_host_destroy(Host);
+    Reset();
 }

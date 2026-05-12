@@ -6,6 +6,7 @@
 #include <iostream>
 #include <ranges>
 
+#include "game/Game.h"
 #include "network/client/Client.h"
 #include "network/server/Server.h"
 
@@ -15,47 +16,28 @@ void client() {
     InitWindow(1280, 720, "BURST Client");
     SetTargetFPS(60);
 
-    Player MyPlayer = Player(0, 0, 350.0f);
-
-    Texture2D MyPlayerTexture = LoadTexture("assets/player1.png");
-    Texture2D OtherPlayerTexture = LoadTexture("assets/player2.png");
-
-    Client MyClient = Client();
-
-    MyClient.Connect("127.0.0.1", 5000);
+    Game game = Game();
+    game.Connect("127.0.0.1", 5000);
 
     while (!WindowShouldClose()) {
-        MyClient.Update();
-
         BeginDrawing();
         ClearBackground(WHITE);
 
-        MyPlayer.MovePlayer(MyClient.GetServerTime());
-        MyClient.UpdateState(MyPlayer.CurrentState);
-
-        for (auto& player : MyClient.GetPlayers() | views::values) {
-            player.SmoothPlayerState(MyClient.GetServerTime(), 0.1f);
-            DrawTextureEx(OtherPlayerTexture, player.LocalState.position, 0, 0.5f, WHITE);
-        }
-        DrawTextureEx(MyPlayerTexture, MyPlayer.CurrentState.position, 0, 0.5f, WHITE);
-
-        MyPlayer.LastState = MyPlayer.CurrentState;
+        game.Update();
 
         EndDrawing();
     }
 
-    std::cout << "stopping client!" << std::endl;
-    MyClient.Disconnect();
-
-    UnloadTexture(MyPlayerTexture);
-    UnloadTexture(OtherPlayerTexture);
-
+    game.Quit();
     CloseWindow();
 }
 
 void server() {
-    StartServer();
-    StopServer();
+    Server s = Server();
+    s.StartServer();
+    while (s.Running)
+        s.UpdateServer();
+    s.StopServer();
 }
 
 int main(int argc, char** argv) {

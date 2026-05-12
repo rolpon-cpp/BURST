@@ -2,7 +2,7 @@
 // Created by lalit on 5/10/2026.
 //
 
-#include "EventActions.h"
+#include "ClientEventActions.h"
 #include "../Utils.h"
 #include "Client.h"
 #include "../Packet.h"
@@ -26,7 +26,8 @@ void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
         0,
         Packet.timestamp
     };
-    OurClient.OtherPlayers[player_join.id] = Player(s);
+    OurClient.OtherPlayers[player_join.id] = Player(s, OurClient.game);
+    OurClient.OtherPlayers[player_join.id].PlayerID = player_join.id;
 }
 
 void PlayerLeftAction(Client& OurClient, Packet& Packet, ENetEvent& Event)

@@ -15,12 +15,16 @@
 
 using namespace std;
 
+class Game;
+
 class Resources
 {
 public:
+    Game* game;
     unordered_map<string, Texture2D> Textures;
 
     Resources();
+    Resources(Game *game);
     ~Resources();
 
     void Load();

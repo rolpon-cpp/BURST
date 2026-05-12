@@ -12,21 +12,27 @@
 
 using namespace std;
 
+class Game;
+
 class Client
 {
 public:
 
+    Game* game;
+
     bool Connected;
 
-    ENetHost* Host;
-    ENetPeer* Peer;
+    ENetHost* Host = nullptr;
+    ENetPeer* Peer = nullptr;
     unordered_map<int32_t, Player> OtherPlayers;
     unordered_map<PacketType, void(*)(Client& OurClient, Packet& Packet, ENetEvent& Event)> EventActions;
 
     double ServerTimeOffset;
     double LastUpdatedState;
 
+    Client(Game* game);
     Client();
+    ~Client();
     void Connect(std::string IPAddress, int Port);
     void Disconnect();
     void Update();

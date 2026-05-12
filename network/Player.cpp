@@ -12,14 +12,29 @@
 #include <iostream>
 #include <ostream>
 
+#include "raymath.h"
+#include "../game/Game.h"
 #include "client/Client.h"
+
+bool CompareStates(PlayerState State1, PlayerState State2)
+{
+    if (Vector2Distance(State1.position, State2.position) > 0)
+        return true;
+    if (Vector2Distance(State1.velocity, State2.velocity) > 0)
+        return true;
+    if (abs(State1.speed - State2.speed) > 0)
+        return true;
+    return false;
+}
 
 Player::Player()
 {
 }
 
-Player::Player(float X, float Y, float Speed)
+Player::Player(float X, float Y, float Speed, Game* game)
 {
+    this->game = game;
+    PlayerID = -1;
     CurrentState.position = {X, Y};
     CurrentState.speed = Speed;
     CurrentState.timestamp = 0;
@@ -27,8 +42,10 @@ Player::Player(float X, float Y, float Speed)
     LocalState = CurrentState;
 }
 
-Player::Player(PlayerState State)
+Player::Player(PlayerState State, Game* game)
 {
+    this->game = game;
+    PlayerID = -1;
     CurrentState = State;
     LastState = CurrentState;
     LocalState = CurrentState;
@@ -38,7 +55,7 @@ Player::~Player()
 {
 }
 
-void Player::SmoothPlayerState(double ServerTime, double Delay)
+void Player::SmoothPlayerState(double ServerTime, double Delay, bool Extrapolate)
 {
     this->LocalState.id = this->CurrentState.id;
 
@@ -69,8 +86,14 @@ void Player::SmoothPlayerState(double ServerTime, double Delay)
 
     if (!found2)
     {
-        highest.position.x = lowest.position.x + lowest.velocity.x * lowest.speed * (render_time - lowest.timestamp);
-        highest.position.y = lowest.position.y + lowest.velocity.y * lowest.speed * (render_time - lowest.timestamp);
+        if (Extrapolate)
+        {
+            highest.position.x = lowest.position.x + lowest.velocity.x * lowest.speed * (render_time - lowest.timestamp);
+            highest.position.y = lowest.position.y + lowest.velocity.y * lowest.speed * (render_time - lowest.timestamp);
+        } else
+        {
+            highest = CurrentState;
+        }
     }
 
     if (found)
@@ -107,4 +130,12 @@ void Player::MovePlayer(double ServerTime)
 
     CurrentState.timestamp = ServerTime;
     LocalState = CurrentState;
+}
+
+void Player::Update()
+{
+    string tex = "player2";
+    if (PlayerID < 0)
+        tex = "player1";
+    DrawTextureEx(game->GameResources.Textures[tex], LocalState.position - Vector2{18.0f, 18.0f}, 0, 0.5f, WHITE);
 }
