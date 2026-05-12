@@ -85,7 +85,7 @@ void Client::Disconnect()
     {
         ENetEvent client_event;
         enet_peer_disconnect(Peer, 0);
-        while (enet_host_service(Host, &client_event, 500) > 0 && !disconnected)
+        while (enet_host_service(Host, &client_event, 0) > 0 && !disconnected)
         {
             switch (client_event.type)
             {
@@ -107,7 +107,6 @@ void Client::Disconnect()
     if (Peer != nullptr && !disconnected)
     {
         enet_peer_reset(Peer);
-        Peer = nullptr;
     }
 
     if (Host != nullptr)
@@ -115,6 +114,8 @@ void Client::Disconnect()
         enet_host_destroy(Host);
         Host = nullptr;
     }
+
+    Peer = nullptr;
 
     Reset();
 }
