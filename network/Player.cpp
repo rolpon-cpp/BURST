@@ -16,6 +16,7 @@
 #include "../game/Game.h"
 #include "client/Client.h"
 
+// Returns true if the states are significantly different
 bool CompareStates(PlayerState State1, PlayerState State2)
 {
     if (Vector2Distance(State1.position, State2.position) > 0)

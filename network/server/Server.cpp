@@ -4,6 +4,8 @@
 
 #include "Server.h"
 #include <iostream>
+#include <ranges>
+
 #include "enet/enet.h"
 #include "../Utils.h"
 #include "../Player.h"
@@ -52,86 +54,95 @@ void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
         std::cout << "Error creating server host.\n";
         return;
     }
-
     printf("ENet server host successfully created.\n");
-
     printf("Server successfully connected!\n");
 
     LatestPlayerID = 1;
     Running = true;
 }
 
-void Server::PlayerConnect(ENetEvent& Event)
+void Server::PlayerTimeSync(ENetPeer* Peer)
 {
-    LatestPlayerID += 1;
-    printf("Player ID %d joined the game!\n", LatestPlayerID);
-    Player* newPlayer = new Player();
-    newPlayer->PlayerID = LatestPlayerID;
-    Event.peer->data = newPlayer;
-    Players[LatestPlayerID] = Event.peer;
-
-    // Sending time sync to new player
     Packet myPacket = {};
     myPacket.type = TIME_SYNC;
     myPacket.timestamp = GetTimeUtils();
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-    enet_peer_send(Event.peer, 0, packet);
+    enet_peer_send(Peer, 0, packet);
+}
+
+void Server::PlayerCreateCharacter(ENetPeer* Peer)
+{
+    LatestPlayerID += 1;
+    auto* newPlayer = new Player();
+    newPlayer->PlayerID = LatestPlayerID;
+    Peer->data = newPlayer;
+    Players[LatestPlayerID] = Peer;
+}
+
+void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
+{
+    Packet myPacket = {};
+    myPacket.type = PLAYER_JOIN;
+    myPacket.timestamp = GetTimeUtils();
+
+    PlayerJoin playerJoin = {0};
+    playerJoin.id = static_cast<Player*>(NewPeer->data)->PlayerID;
+    playerJoin.starting_location = {0, 0};
+    memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
+
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+    enet_peer_send(PeerToNotify, 0, packet);
+}
+
+void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
+{
+    Packet myPacket;
+    myPacket.type = PLAYER_LEFT;
+    myPacket.timestamp = GetTimeUtils();
+
+    PlayerLeft left = {0};
+    left.id = static_cast<Player*>(OldPeer->data)->PlayerID;
+    memcpy(&myPacket.data, &left, sizeof(left));
+
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket),
+                                            ENET_PACKET_FLAG_RELIABLE);
+    enet_peer_send(PeerToNotify, 0, packet);
+}
+
+void Server::PlayerConnect(ENetEvent& Event)
+{
+    // Create new player
+    printf("Player ID %d joined the game!\n", LatestPlayerID);
+    PlayerCreateCharacter(Event.peer);
+
+    // Sending time sync to new player
+    PlayerTimeSync(Event.peer);
+
+    auto* NewPlayer = static_cast<Player*>(Event.peer->data);
 
     for (auto [name,peer] : Players)
     {
         auto* p = static_cast<Player*>(peer->data);
-        if (p->PlayerID != newPlayer->PlayerID)
+        if (p->PlayerID != NewPlayer->PlayerID)
         {
             // Sending player join to existing player
-            myPacket = {};
-            myPacket.type = PLAYER_JOIN;
-            myPacket.timestamp = GetTimeUtils();
-
-            PlayerJoin playerJoin = {0};
-            playerJoin.id = newPlayer->PlayerID;
-            playerJoin.starting_location = {0, 0};
-            memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
-
-            packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(peer, 0, packet);
+            PlayerJoinNotification(Event.peer, peer);
 
             // Sending player join to new player
-            myPacket = {};
-            myPacket.timestamp = GetTimeUtils();
-            myPacket.type = PLAYER_JOIN;
-
-            playerJoin = {0};
-            playerJoin.id = p->PlayerID;
-            playerJoin.starting_location = p->CurrentState.position;
-            memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
-
-            packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(Event.peer, 0, packet);
+            PlayerJoinNotification(peer, Event.peer);
         }
     }
 }
 
 void Server::PlayerDisconnect(ENetEvent& Event)
 {
-    Player* OldPlayer = reinterpret_cast<Player*>(Event.peer->data);
+    auto* OldPlayer = static_cast<Player*>(Event.peer->data);
     printf("Player ID %d has left the game!\n", OldPlayer->PlayerID);
-    for (auto [name, peer] : Players)
+    for (auto& peer : Players | views::values)
     {
         auto* p = static_cast<Player*>(peer->data);
         if (p->PlayerID != OldPlayer->PlayerID)
-        {
-            Packet myPacket;
-            myPacket.type = PLAYER_LEFT;
-            myPacket.timestamp = GetTimeUtils();
-
-            PlayerLeft left = {0};
-            left.id = OldPlayer->PlayerID;
-            memcpy(&myPacket.data, &left, sizeof(left));
-
-            ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket),
-                                                    ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(peer, 0, packet);
-        }
+            PlayerLeftNotification(Event.peer, peer);
     }
     Players.erase(OldPlayer->PlayerID);
     delete OldPlayer;
@@ -188,13 +199,7 @@ void Server::HandleTimeSync()
     if (GetTimeUtils() - LastSyncedTime >= 1)
     {
         for (auto [id, peer] : Players)
-        {
-            Packet myPacket;
-            myPacket.type = TIME_SYNC;
-            myPacket.timestamp = GetTimeUtils();
-            ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(peer, 0, packet);
-        }
+            PlayerTimeSync(peer);
         LastSyncedTime = GetTimeUtils();
     }
 }
@@ -212,22 +217,25 @@ void Server::HandlePlayerStates()
         {
             auto* player = reinterpret_cast<Player*>(other_peer->data);
             if (other_id != id && CompareStates(player->CurrentState, player->LocalState))
-            {
-                player->LocalState = player->CurrentState;
-
-                Packet myPacket;
-                myPacket.type = PLAYER_UPDATE;
-                myPacket.timestamp = player->CurrentState.timestamp;
-
-                memcpy(&myPacket.data, &player->CurrentState, sizeof(player->CurrentState));
-
-                ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
-                enet_peer_send(peer, 0, packet);
-            }
+                PlayerUpdateNotification(player, peer);
         }
     }
 
     enet_host_flush(Host);
+}
+
+void Server::PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNotify)
+{
+    UpdatedPlayer->LocalState = UpdatedPlayer->CurrentState;
+
+    Packet myPacket;
+    myPacket.type = PLAYER_UPDATE;
+    myPacket.timestamp = UpdatedPlayer->CurrentState.timestamp;
+
+    memcpy(&myPacket.data, &UpdatedPlayer->CurrentState, sizeof(UpdatedPlayer->CurrentState));
+
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+    enet_peer_send(PeerToNotify, 0, packet);
 }
 
 void Server::UpdateServer()

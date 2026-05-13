@@ -7,18 +7,14 @@
 #include <string>
 #include <unordered_map>
 #include "../Packet.h"
+#include "../Player.h"
 #include "enet/enet.h"
 
 using namespace std;
 
 class Server
 {
-public:
-    ENetHost* Host = nullptr;
-    bool Running;
     long LatestPlayerID;
-
-    unordered_map<int32_t, ENetPeer*> Players;
     unordered_map<PacketType, void(*)(Server& OurServer, Packet& Packet, ENetEvent& Event)> PacketEventActions;
 
     double LastSyncedTime;
@@ -30,6 +26,16 @@ public:
     void PlayerConnect(ENetEvent& Event);
     void PlayerDisconnect(ENetEvent& Event);
 
+    void PlayerTimeSync(ENetPeer* Peer);
+    void PlayerCreateCharacter(ENetPeer* Peer);
+    void PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNotify);
+    void PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify);
+    void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
+
+public:
+    unordered_map<int32_t, ENetPeer*> Players;
+    ENetHost* Host = nullptr;
+    bool Running;
     Server();
     ~Server();
     void Reset();
