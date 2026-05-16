@@ -3,9 +3,12 @@
 //
 
 #include "ClientEventActions.h"
-#include "../Utils.h"
+#include "../../core/Utils.h"
+#include "../../game/Game.h"
+
 #include "Client.h"
 #include "../Packet.h"
+#include "../../core/Map.h"
 
 void TimeSyncAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
@@ -62,4 +65,15 @@ void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
             OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.end()
         );
     }
+}
+
+void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    Chunk c;
+    Vector2 loc;
+
+    memcpy(&loc, &Packet.data, sizeof(Vector2));
+    memcpy(&c, &Packet.data + sizeof(Vector2), sizeof(Vector2));
+
+    OurClient.game->GameMap.SetChunk(&c, loc.x, loc.y);
 }

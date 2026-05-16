@@ -27,7 +27,6 @@ void Resources::Load()
     for (int i = 0; i < List.count; i++)
     {
         string fn = List.paths[i];
-        cout << string(GetFileNameWithoutExt(fn.c_str())) << endl;
         if (fn.ends_with(".png") || fn.ends_with(".jpg") || fn.ends_with(".jpeg"))
             Textures[string(GetFileNameWithoutExt(fn.c_str()))] = LoadTexture(fn.c_str());
     }

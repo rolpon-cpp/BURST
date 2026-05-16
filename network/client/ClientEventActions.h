@@ -14,5 +14,6 @@ void TimeSyncAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void PlayerLeftAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
+void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 
 #endif //BURST_EVENTACTIONS_H

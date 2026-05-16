@@ -8,6 +8,7 @@ Game::Game()
 {
     LocalPlayer = Player(0, 0, 350.0f, this);
     GameCamera = BurstCamera(this);
+    GameMap = Map();
 
     GameClient = Client(this);
     GameResources = Resources(this);
@@ -27,6 +28,7 @@ void Game::Connect(string IPAddress, int Port)
 
 void Game::Disconnect()
 {
+    GameMap.ClearMap();
     GameClient.Disconnect();
 }
 
@@ -38,8 +40,18 @@ void Game::Update()
 
     for (auto &[PlayerID, Player] : GameClient.GetPlayers())
     {
-        Player.SmoothPlayerState(GameClient.GetServerTime(), 0.25f);
+        Player.SmoothPlayerState(GameClient.GetServerTime(), 0.1f);
         Player.Update();
+    }
+
+    for (int x = 0; x < WORLD_CHUNK_SIZE; x++)
+    {
+        for (int y = 0; y < WORLD_CHUNK_SIZE; y++)
+        {
+            Chunk* c = GameMap.GetChunk(x, y);
+            if (c == nullptr && !GameMap.ChunkIsMarked(x, y))
+                GameMap.MarkChunk(x, y);
+        }
     }
 
     LocalPlayer.Update();

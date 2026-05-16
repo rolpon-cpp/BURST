@@ -2,13 +2,11 @@
 #define NOGDI
 #define NOUSER
 #include "raylib.h"
-
 #include <iostream>
 #include <ranges>
 
+#include "core/Core.h"
 #include "game/Game.h"
-#include "network/client/Client.h"
-#include "network/server/Server.h"
 
 using namespace std;
 
@@ -33,11 +31,11 @@ void client() {
 }
 
 void server() {
-    Server s = Server();
-    s.StartServer();
-    while (s.Running)
-        s.UpdateServer();
-    s.StopServer();
+    Core c = Core();
+    c.Start();
+    while (c.Running)
+        c.Update();
+    c.Stop();
 }
 
 int main(int argc, char** argv) {

@@ -11,5 +11,6 @@ class Server;
 struct Packet;
 
 void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
+void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 
 #endif //BURST_SERVEREVENTACTIONS_H

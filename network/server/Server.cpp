@@ -7,14 +7,22 @@
 #include <ranges>
 
 #include "enet/enet.h"
-#include "../Utils.h"
-#include "../Player.h"
+#include "../../core/Utils.h"
+#include "../../game/Player.h"
 #include "ServerEventActions.h"
+#include "../../core/Core.h"
 
 using namespace std;
 
 Server::Server()
 {
+    Reset();
+    core = nullptr;
+}
+
+Server::Server(Core* core)
+{
+    this->core = core;
     Reset();
 }
 
@@ -33,6 +41,7 @@ void Server::Reset()
     LatestPlayerID = -1;
     PacketEventActions.clear();
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
+    PacketEventActions[GET_CHUNK] = &GetChunkAction;
 }
 
 void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
@@ -112,7 +121,7 @@ void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
 void Server::PlayerConnect(ENetEvent& Event)
 {
     // Create new player
-    printf("Player ID %d joined the game!\n", LatestPlayerID);
+    printf("Player ID %d joined the game!\n", LatestPlayerID + 1);
     PlayerCreateCharacter(Event.peer);
 
     // Sending time sync to new player

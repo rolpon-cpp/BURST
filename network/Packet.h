@@ -10,6 +10,7 @@ enum PacketType {
     PLAYER_JOIN,
     PLAYER_LEFT,
     TIME_SYNC,
+    GET_CHUNK,
 };
 
 #pragma pack(push, 1)

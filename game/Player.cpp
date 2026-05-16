@@ -13,8 +13,8 @@
 #include <ostream>
 
 #include "raymath.h"
-#include "../game/Game.h"
-#include "client/Client.h"
+#include "Game.h"
+#include "../network/client/Client.h"
 
 // Returns true if the states are significantly different
 bool CompareStates(PlayerState State1, PlayerState State2)

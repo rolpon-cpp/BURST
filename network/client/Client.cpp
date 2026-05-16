@@ -7,9 +7,9 @@
 #include <unordered_map>
 #include "ClientEventActions.h"
 #include "Client.h"
-#include "../Utils.h"
+#include "../../core/Utils.h"
 #include "../Packet.h"
-#include "../Player.h"
+#include "../../game/Player.h"
 #include "enet/enet.h"
 
 using namespace std;
@@ -131,12 +131,27 @@ void Client::Reset()
     EventActions[PLAYER_JOIN] = &PlayerJoinAction;
     EventActions[PLAYER_LEFT] = &PlayerLeftAction;
     EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
+    EventActions[GET_CHUNK] = &GetChunkAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
     LastUpdatedState = 0;
     OtherPlayers.clear();
     Connected = false;
+}
+
+void Client::RequestChunk(Vector3 Position)
+{
+    if (Host != nullptr && Peer != nullptr)
+    {
+        Packet myPacket = {};
+        myPacket.timestamp = GetTimeUtils();
+        myPacket.type = GET_CHUNK;
+        memcpy(&myPacket.data, &Position, sizeof(Vector3));
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+        enet_peer_send(Peer, 0, packet);
+        enet_host_flush(Host);
+    }
 }
 
 void Client::Update()

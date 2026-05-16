@@ -7,17 +7,15 @@
 #include "Resources.h"
 #include "../network/client/Client.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-#define NOUSER
 #include "Camera.h"
-#include "raylib.h"
+#include "../core/Map.h"
 
 class Game
 {
 public:
-    // Player & Camera
+    // Game
     Player LocalPlayer;
+    Map GameMap;
     BurstCamera GameCamera;
 
     // Network

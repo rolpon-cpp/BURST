@@ -3,8 +3,12 @@
 //
 
 #include "ServerEventActions.h"
-#include "../Player.h"
+
+#include "Server.h"
+#include "../../game/Player.h"
 #include "../Packet.h"
+#include "../../core/Core.h"
+#include "../../core/Utils.h"
 
 void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
@@ -15,4 +19,23 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
     PlayerToUpdate->CurrentState.id = PlayerToUpdate->PlayerID;
     PlayerToUpdate->LastState.id = PlayerToUpdate->PlayerID;
+}
+
+void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+{
+    Vector2 RequestedChunkPos;
+    memcpy(&RequestedChunkPos, &Packet.data, sizeof(Vector2));
+    Chunk* c = OurServer.core->GameMap.GetChunk(RequestedChunkPos.x,RequestedChunkPos.y);
+    if (c == nullptr)
+        return;
+
+    struct Packet PacketData;
+    PacketData.type = GET_CHUNK;
+    PacketData.timestamp = GetTimeUtils();
+
+    memcpy(&PacketData.data, &RequestedChunkPos, sizeof(Vector2));
+    memcpy(&PacketData.data + sizeof(Vector2), c, sizeof(Chunk));
+
+    ENetPacket* GetChunkENetPacket = enet_packet_create(&PacketData, sizeof(struct Packet), ENET_PACKET_FLAG_RELIABLE);
+    enet_peer_send(Event.peer, 0, GetChunkENetPacket);
 }

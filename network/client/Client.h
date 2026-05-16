@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include "enet/enet.h"
-#include "../Player.h"
+#include "../../game/Player.h"
 #include "../Packet.h"
 
 using namespace std;
@@ -40,6 +40,7 @@ public:
 
     std::unordered_map<int32_t, Player>& GetPlayers();
     void UpdateState(PlayerState& State);
+    void RequestChunk(Vector3 Position);
     double GetServerTime();
 };
 

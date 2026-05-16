@@ -7,10 +7,11 @@
 #include <string>
 #include <unordered_map>
 #include "../Packet.h"
-#include "../Player.h"
+#include "../../game/Player.h"
 #include "enet/enet.h"
 
 using namespace std;
+class Core;
 
 class Server
 {
@@ -33,10 +34,12 @@ class Server
     void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
 
 public:
+    Core* core;
     unordered_map<int32_t, ENetPeer*> Players;
     ENetHost* Host = nullptr;
     bool Running;
     Server();
+    Server(Core* core);
     ~Server();
     void Reset();
     void StartServer(std::string IPAddress = "127.0.0.1", int Port = 5000, int MaxClients = 32);
