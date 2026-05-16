@@ -4,21 +4,23 @@
 
 #ifndef ALLS_CLIENT_H
 #define ALLS_CLIENT_H
+
+#include "../../game_libs.h"
 #include <string>
 #include <unordered_map>
-#include "enet/enet.h"
 #include "../../game/Player.h"
 #include "../Packet.h"
 
 using namespace std;
 
 class Game;
+class GameClient;
 
 class Client
 {
 public:
 
-    Game* game;
+    GameClient* game;
 
     bool Connected;
 
@@ -30,7 +32,7 @@ public:
     double ServerTimeOffset;
     double LastUpdatedState;
 
-    Client(Game* game);
+    Client(GameClient* game);
     Client();
     ~Client();
     void Connect(std::string IPAddress, int Port);
@@ -40,7 +42,7 @@ public:
 
     std::unordered_map<int32_t, Player>& GetPlayers();
     void UpdateState(PlayerState& State);
-    void RequestChunk(Vector3 Position);
+    void RequestChunk(Vector2 Position);
     double GetServerTime();
 };
 

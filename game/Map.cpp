@@ -2,27 +2,36 @@
 // Created by lalit on 5/13/2026.
 //
 
-#include "Map.h"
+#include "../game/Map.h"
 #include <random>
 #include <iostream>
 
-#include "Utils.h"
+#include "../network/Utils.h"
+
+#include "Game.h"
 
 using namespace std;
 
 Map::Map()
 {
+    this->ClearMap();
 }
 
 Map::~Map()
 {
 }
 
+Map::Map(Game* game)
+{
+    this->game = game;
+    this->ClearMap();
+}
+
 void Map::GenerateMap(int Seed)
 {
     ClearMap();
     std::mt19937 gen(Seed);
-    std::uniform_int_distribution<> distr(0, 5);
+    std::uniform_int_distribution distr(0, 3);
 
     for (int ChunkY = 0; ChunkY < WORLD_CHUNK_SIZE; ChunkY++)
     {
@@ -51,28 +60,28 @@ void Map::GenerateMap(int Seed)
 
 Chunk* Map::GetChunk(int x, int y)
 {
-    if (x >= WORLD_CHUNK_SIZE || x < 0 || y >= WORLD_CHUNK_SIZE || y < 0)
+    if (x > WORLD_CHUNK_SIZE || x < 0 || y > WORLD_CHUNK_SIZE || y < 0)
         return nullptr;
     return &Chunks[y * WORLD_CHUNK_SIZE + x];
 }
 
 char* Map::GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y)
 {
-    if (x >= CHUNK_SIZE || x < 0 || y >= CHUNK_SIZE || y < 0)
+    if (x > CHUNK_SIZE || x < 0 || y > CHUNK_SIZE || y < 0)
         return nullptr;
     return &ChunkToGetFrom->Data[y * CHUNK_SIZE + x];
 }
 
 void Map::SetChunk(Chunk* ChunkToSet, int x, int y)
 {
-    if (x >= WORLD_CHUNK_SIZE || x < 0 || y >= WORLD_CHUNK_SIZE || y < 0)
+    if (x > WORLD_CHUNK_SIZE || x < 0 || y > WORLD_CHUNK_SIZE || y < 0)
         return;
     Chunks[y * WORLD_CHUNK_SIZE + x] = *ChunkToSet;
 }
 
 void Map::SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y)
 {
-    if (x >= CHUNK_SIZE || x < 0 || y >= CHUNK_SIZE || y < 0)
+    if (x > CHUNK_SIZE || x < 0 || y > CHUNK_SIZE || y < 0)
         return;
     ChunkToSet->Data[y * CHUNK_SIZE + x] = TileToSet;
 }
@@ -85,9 +94,9 @@ void Map::ClearMap()
 
 bool Map::ChunkIsMarked(int x, int y)
 {
-    for (Vector3 p : MarkedChunks)
+    for (MarkedChunk p : MarkedChunks)
     {
-        if (p.x == x && p.y == y && GetTimeUtils() - p.z <= 10)
+        if (p.x == x && p.y == y && GetTimeUtils() - p.timestamp <= 10)
             return true;
     }
     return false;
@@ -95,15 +104,41 @@ bool Map::ChunkIsMarked(int x, int y)
 
 void Map::MarkChunk(int x, int y)
 {
+    GameClient* gc = (GameClient*)game;
+    gc->MainClient.RequestChunk(Vector2{(float)x, (float)y});
     if (ChunkIsMarked(x,y))
         return;
-    MarkedChunks.push_back(Vector3{(float)x,(float)y,(float)GetTimeUtils()});
+    MarkedChunks.push_back(MarkedChunk{x,y,GetTimeUtils()});
+}
+
+void Map::UpdateChunk(int cx, int cy)
+{
+    Chunk* chunk = GetChunk(cx, cy);
+    if (chunk == nullptr)
+        return;
+    for (int x = 0; x < CHUNK_SIZE; x++)
+    {
+        for (int y = 0; y < CHUNK_SIZE; y++)
+        {
+            char* tile = GetTileInChunk(chunk, x, y);
+            if (*tile == 1)
+                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, RED);
+        }
+    }
 }
 
 void Map::Update()
 {
-    std::erase_if(MarkedChunks, [](Vector3& p)
+    for (int cx = 0; cx < WORLD_CHUNK_SIZE; cx++)
     {
-        return GetTimeUtils() - p.z >= 10.0f;
-    });
+        for (int cy = 0; cy < WORLD_CHUNK_SIZE; cy++)
+        {
+            Chunk* c = GetChunk(cx, cy);
+            if (c != nullptr && !ChunkIsMarked(cx, cy))
+                MarkChunk(cx, cy);
+
+            UpdateChunk(cx, cy);
+
+        }
+    }
 }

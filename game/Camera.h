@@ -5,21 +5,19 @@
 #ifndef BURST_CAMERA_H
 #define BURST_CAMERA_H
 
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-#define NOUSER
-#include "raylib.h"
+#include "../game_libs.h"
 
 class Game;
+class GameClient;
 
 class BurstCamera
 {
 public:
-    Game *game;
+    GameClient *game;
     Camera2D RaylibCamera;
 
     BurstCamera();
-    BurstCamera(Game *game);
+    BurstCamera(GameClient *game);
     ~BurstCamera();
 
     void Start();

@@ -6,23 +6,22 @@
 #include <iostream>
 #include <ranges>
 
-#include "enet/enet.h"
-#include "../../core/Utils.h"
+#include "../Utils.h"
 #include "../../game/Player.h"
 #include "ServerEventActions.h"
-#include "../../core/Core.h"
+#include "../../game/Game.h"
 
 using namespace std;
 
 Server::Server()
 {
     Reset();
-    core = nullptr;
+    game = nullptr;
 }
 
-Server::Server(Core* core)
+Server::Server(Game* game)
 {
-    this->core = core;
+    this->game = game;
     Reset();
 }
 

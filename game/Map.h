@@ -9,25 +9,35 @@
 #define WORLD_CHUNK_SIZE 2
 #define TILE_SIZE 32
 
-#pragma pack(push, 1)
 #include <vector>
 
-#include "raymath.h"
+struct MarkedChunk
+{
+    int x;
+    int y;
+    double timestamp;
+};
 
+#pragma pack(push, 1)
 struct Chunk
 {
     char Data[CHUNK_SIZE * CHUNK_SIZE];
 };
 #pragma pack(pop)
 
+class Game;
+
 class Map
 {
 public:
+    Game* game;
     Chunk Chunks[WORLD_CHUNK_SIZE * WORLD_CHUNK_SIZE];
-    std::vector<Vector3> MarkedChunks;
+    std::vector<MarkedChunk> MarkedChunks;
     Map();
+    Map(Game* game);
     ~Map();
     void Update();
+    void UpdateChunk(int cx, int cy);
     void GenerateMap(int Seed);
     Chunk* GetChunk(int x, int y);
     char* GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y);

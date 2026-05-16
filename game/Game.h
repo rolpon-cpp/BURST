@@ -8,30 +8,48 @@
 #include "../network/client/Client.h"
 
 #include "Camera.h"
-#include "../core/Map.h"
+#include "Map.h"
+#include "../network/server/Server.h"
 
 class Game
 {
 public:
-    // Game
-    Player LocalPlayer;
-    Map GameMap;
-    BurstCamera GameCamera;
-
-    // Network
-    Client GameClient;
-
-    // Managers
-    Resources GameResources;
+    bool IsClient;
+    Map MainMap;
 
     Game();
     ~Game();
 
-    void Connect(string IPAddress, int Port);
-    void Disconnect();
+    void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    void Stop();
     void Update();
     void Quit();
 };
 
+class GameClient : public Game
+{
+public:
+    // Game
+    Player MainPlayer;
+    BurstCamera MainCamera;
+    Client MainClient;
+    Resources MainResources;
+    GameClient();
+    void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    void Stop();
+    void Update();
+    void Quit();
+};
+
+class GameServer : public Game
+{
+public:
+    Server MainServer;
+    GameServer();
+    void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    void Stop();
+    void Update();
+    void Quit();
+};
 
 #endif //BURST_GAME_H

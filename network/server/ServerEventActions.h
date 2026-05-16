@@ -5,7 +5,7 @@
 #ifndef BURST_SERVEREVENTACTIONS_H
 #define BURST_SERVEREVENTACTIONS_H
 
-#include "enet/enet.h"
+#include "../../game_libs.h"
 
 class Server;
 struct Packet;

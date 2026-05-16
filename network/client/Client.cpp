@@ -2,19 +2,19 @@
 // Created by lalit on 11/16/2025.
 //
 
+#include "../../game_libs.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
 #include "ClientEventActions.h"
 #include "Client.h"
-#include "../../core/Utils.h"
+#include "../Utils.h"
 #include "../Packet.h"
 #include "../../game/Player.h"
-#include "enet/enet.h"
 
 using namespace std;
 
-Client::Client(Game* game)
+Client::Client(GameClient* game)
 {
     this->game = game;
     Reset();
@@ -140,14 +140,14 @@ void Client::Reset()
     Connected = false;
 }
 
-void Client::RequestChunk(Vector3 Position)
+void Client::RequestChunk(Vector2 Position)
 {
     if (Host != nullptr && Peer != nullptr)
     {
         Packet myPacket = {};
         myPacket.timestamp = GetTimeUtils();
         myPacket.type = GET_CHUNK;
-        memcpy(&myPacket.data, &Position, sizeof(Vector3));
+        memcpy(&myPacket.data, &Position, sizeof(Vector2));
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);

@@ -2,10 +2,7 @@
 // Created by lalit on 11/27/2025.
 //
 
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-#define NOUSER
-#include "raylib.h"
+#include "../game_libs.h"
 
 #include "Player.h"
 
@@ -32,7 +29,7 @@ Player::Player()
 {
 }
 
-Player::Player(float X, float Y, float Speed, Game* game)
+Player::Player(float X, float Y, float Speed, GameClient* game)
 {
     this->game = game;
     PlayerID = -1;
@@ -43,7 +40,7 @@ Player::Player(float X, float Y, float Speed, Game* game)
     LocalState = CurrentState;
 }
 
-Player::Player(PlayerState State, Game* game)
+Player::Player(PlayerState State, GameClient* game)
 {
     this->game = game;
     PlayerID = -1;
@@ -138,5 +135,5 @@ void Player::Update()
     string tex = "player2";
     if (PlayerID < 0)
         tex = "player1";
-    DrawTextureEx(game->GameResources.Textures[tex], LocalState.position - Vector2{18.0f, 18.0f}, 0, 0.5f, WHITE);
+    DrawTextureEx(game->MainResources.Textures[tex], LocalState.position - Vector2{18.0f, 18.0f}, 0, 0.5f, WHITE);
 }

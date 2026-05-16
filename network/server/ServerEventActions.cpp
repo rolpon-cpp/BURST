@@ -4,11 +4,14 @@
 
 #include "ServerEventActions.h"
 
+#include <iostream>
+
 #include "Server.h"
 #include "../../game/Player.h"
+#include "../../game/Map.h"
+#include "../../game/Game.h"
 #include "../Packet.h"
-#include "../../core/Core.h"
-#include "../../core/Utils.h"
+#include "../Utils.h"
 
 void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
@@ -25,16 +28,17 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
     Vector2 RequestedChunkPos;
     memcpy(&RequestedChunkPos, &Packet.data, sizeof(Vector2));
-    Chunk* c = OurServer.core->GameMap.GetChunk(RequestedChunkPos.x,RequestedChunkPos.y);
+    Chunk* c = OurServer.game->MainMap.GetChunk(RequestedChunkPos.x,RequestedChunkPos.y);
     if (c == nullptr)
         return;
 
     struct Packet PacketData;
     PacketData.type = GET_CHUNK;
     PacketData.timestamp = GetTimeUtils();
+    memset(&PacketData.data, 0, sizeof(PacketData.data));
 
     memcpy(&PacketData.data, &RequestedChunkPos, sizeof(Vector2));
-    memcpy(&PacketData.data + sizeof(Vector2), c, sizeof(Chunk));
+    memcpy(PacketData.data, c, sizeof(Chunk));
 
     ENetPacket* GetChunkENetPacket = enet_packet_create(&PacketData, sizeof(struct Packet), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(Event.peer, 0, GetChunkENetPacket);

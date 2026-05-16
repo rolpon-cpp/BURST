@@ -5,7 +5,7 @@
 #ifndef BURST_EVENTACTIONS_H
 #define BURST_EVENTACTIONS_H
 
-#include "enet/enet.h"
+#include "../../game_libs.h"
 
 class Client;
 struct Packet;

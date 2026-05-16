@@ -10,7 +10,7 @@ BurstCamera::BurstCamera()
 {
 }
 
-BurstCamera::BurstCamera(Game* game)
+BurstCamera::BurstCamera(GameClient* game)
 {
     this->game = game;
     this->RaylibCamera = { GetRenderWidth() / 2.0f, GetRenderHeight() / 2.0f, 0, 0, 0, 1.0f};
@@ -22,9 +22,9 @@ BurstCamera::~BurstCamera()
 
 void BurstCamera::Update()
 {
-    if (game->GameClient.Connected)
+    if (game->MainClient.Connected)
     {
-        this->RaylibCamera.target = Vector2Lerp(this->RaylibCamera.target, game->LocalPlayer.CurrentState.position, 10.0f * GetFrameTime());
+        this->RaylibCamera.target = Vector2Lerp(this->RaylibCamera.target, game->MainPlayer.CurrentState.position, 10.0f * GetFrameTime());
     }
 }
 

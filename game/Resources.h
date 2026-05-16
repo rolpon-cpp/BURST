@@ -5,10 +5,7 @@
 #ifndef BURST_RESOURCES_H
 #define BURST_RESOURCES_H
 
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-#define NOUSER
-#include "raylib.h"
+#include "../game_libs.h"
 
 #include <unordered_map>
 #include <string>

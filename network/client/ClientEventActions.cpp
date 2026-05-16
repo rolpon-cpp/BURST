@@ -3,12 +3,14 @@
 //
 
 #include "ClientEventActions.h"
-#include "../../core/Utils.h"
-#include "../../game/Game.h"
 
+#include <iostream>
+
+#include "../Utils.h"
+#include "../../game/Map.h"
+#include "../../game/Game.h"
 #include "Client.h"
 #include "../Packet.h"
-#include "../../core/Map.h"
 
 void TimeSyncAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
@@ -73,7 +75,11 @@ void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     Vector2 loc;
 
     memcpy(&loc, &Packet.data, sizeof(Vector2));
-    memcpy(&c, &Packet.data + sizeof(Vector2), sizeof(Vector2));
+    memcpy(&c, Packet.data + sizeof(Vector2), sizeof(Chunk));
 
-    OurClient.game->GameMap.SetChunk(&c, loc.x, loc.y);
+    for (int i = 0; i < CHUNK_SIZE*CHUNK_SIZE; i++)
+        cout << (int)c.Data[i];
+    cout << "\n";
+
+    OurClient.game->MainMap.SetChunk(&c, loc.x, loc.y);
 }

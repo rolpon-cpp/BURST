@@ -1,11 +1,8 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-#define NOUSER
-#include "raylib.h"
+
+#include "game_libs.h"
 #include <iostream>
 #include <ranges>
 
-#include "core/Core.h"
 #include "game/Game.h"
 
 using namespace std;
@@ -14,8 +11,8 @@ void client() {
     InitWindow(1280, 720, "BURST Client");
     SetTargetFPS(60);
 
-    Game game = Game();
-    game.Connect("127.0.0.1", 5000);
+    GameClient game = GameClient();
+    game.Start();
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -31,11 +28,11 @@ void client() {
 }
 
 void server() {
-    Core c = Core();
-    c.Start();
-    while (c.Running)
-        c.Update();
-    c.Stop();
+    GameServer game = GameServer();
+    game.Start();
+    while (game.MainServer.Running)
+        game.Update();
+    game.Stop();
 }
 
 int main(int argc, char** argv) {
