@@ -77,9 +77,5 @@ void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     memcpy(&loc, &Packet.data, sizeof(Vector2));
     memcpy(&c, Packet.data + sizeof(Vector2), sizeof(Chunk));
 
-    for (int i = 0; i < CHUNK_SIZE*CHUNK_SIZE; i++)
-        cout << (int)c.Data[i];
-    cout << "\n";
-
     OurClient.game->MainMap.SetChunk(&c, loc.x, loc.y);
 }

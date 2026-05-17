@@ -38,7 +38,7 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
     memset(&PacketData.data, 0, sizeof(PacketData.data));
 
     memcpy(&PacketData.data, &RequestedChunkPos, sizeof(Vector2));
-    memcpy(PacketData.data, c, sizeof(Chunk));
+    memcpy(PacketData.data + sizeof(Vector2), c, sizeof(Chunk));
 
     ENetPacket* GetChunkENetPacket = enet_packet_create(&PacketData, sizeof(struct Packet), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(Event.peer, 0, GetChunkENetPacket);

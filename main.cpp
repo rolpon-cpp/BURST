@@ -9,10 +9,17 @@ using namespace std;
 
 void client() {
     InitWindow(1280, 720, "BURST Client");
-    SetTargetFPS(60);
+    SetTargetFPS(120);
+
+    std::string ip = "";
+    std::string prt = "";
+    cout << "pls enter ip: ";
+    cin >> ip;
+    cout << "pls enter port: ";
+    cin >> prt;
 
     GameClient game = GameClient();
-    game.Start();
+    game.Start(ip, stoi(prt));
 
     while (!WindowShouldClose()) {
         BeginDrawing();

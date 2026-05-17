@@ -120,11 +120,18 @@ void Player::MovePlayer(double ServerTime)
 
     CurrentState.velocity = MyPlayerVelocity;
 
-    MyPlayerVelocity.x *= CurrentState.speed;
-    MyPlayerVelocity.y *= CurrentState.speed;
+    MyPlayerVelocity.x *= CurrentState.speed * GetFrameTime();
+    MyPlayerVelocity.y *= CurrentState.speed * GetFrameTime();
 
-    CurrentState.position.x += MyPlayerVelocity.x * GetFrameTime();
-    CurrentState.position.y += MyPlayerVelocity.y * GetFrameTime();
+    Rectangle xCheck = {CurrentState.position.x + MyPlayerVelocity.x, CurrentState.position.y, 36.0f, 36.0f};
+    if (game->MainMap.CollisionCheck(xCheck))
+        MyPlayerVelocity.x = 0.0f;
+    CurrentState.position.x += MyPlayerVelocity.x;
+
+    Rectangle yCheck = {CurrentState.position.x, CurrentState.position.y + MyPlayerVelocity.y, 36.0f, 36.0f};
+    if (game->MainMap.CollisionCheck(yCheck))
+        MyPlayerVelocity.y = 0.0f;
+    CurrentState.position.y += MyPlayerVelocity.y;
 
     CurrentState.timestamp = ServerTime;
     LocalState = CurrentState;
@@ -135,5 +142,10 @@ void Player::Update()
     string tex = "player2";
     if (PlayerID < 0)
         tex = "player1";
-    DrawTextureEx(game->MainResources.Textures[tex], LocalState.position - Vector2{18.0f, 18.0f}, 0, 0.5f, WHITE);
+    string playerName = "Player " + to_string(PlayerID);
+    if (PlayerID < 0)
+        playerName = "You";
+    int sz = MeasureText(playerName.c_str(), 25);
+    DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 35, 25, BLACK);
+    DrawTextureEx(game->MainResources.Textures[tex], LocalState.position, 0, 0.5f, WHITE);
 }

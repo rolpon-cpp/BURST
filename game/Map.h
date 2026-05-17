@@ -7,9 +7,10 @@
 
 #define CHUNK_SIZE 12
 #define WORLD_CHUNK_SIZE 2
-#define TILE_SIZE 32
+#define TILE_SIZE 72
 
 #include <vector>
+#include "../game_libs.h"
 
 struct MarkedChunk
 {
@@ -46,6 +47,9 @@ public:
     void ClearMap();
     bool ChunkIsMarked(int x, int y);
     void MarkChunk(int x, int y);
+    bool CollisionCheck(Rectangle rectangle);
+    Rectangle GetTileRect(int cx, int cy, int x, int y);
+    Rectangle GetTileRect(int worldX, int worldY);
 };
 
 #endif //BURST_MAP_H

@@ -65,7 +65,7 @@ void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
     printf("ENet server host successfully created.\n");
     printf("Server successfully connected!\n");
 
-    LatestPlayerID = 1;
+    LatestPlayerID = 0;
     Running = true;
 }
 

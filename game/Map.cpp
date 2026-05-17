@@ -31,7 +31,8 @@ void Map::GenerateMap(int Seed)
 {
     ClearMap();
     std::mt19937 gen(Seed);
-    std::uniform_int_distribution distr(0, 3);
+    std::uniform_int_distribution distr(0, 10);
+    Vector2 WorldCenter = {WORLD_CHUNK_SIZE*CHUNK_SIZE / 2.0f, WORLD_CHUNK_SIZE*CHUNK_SIZE / 2.0f};
 
     for (int ChunkY = 0; ChunkY < WORLD_CHUNK_SIZE; ChunkY++)
     {
@@ -50,7 +51,12 @@ void Map::GenerateMap(int Seed)
                         *Tile = 1;
                         continue;
                     }
-                    *Tile = distr(gen) == 2 ? 1 : 0;
+                    if (Vector2Distance(Vector2{(float)WorldTileX, (float)WorldTileY}, WorldCenter) >= 4)
+                    {
+                        int roll = distr(gen);
+                        *Tile = roll >= 8 ? 1 : *Tile;
+                        *Tile = roll == 3 ? 2 : *Tile;
+                    }
                 }
             }
         }
@@ -121,8 +127,34 @@ void Map::UpdateChunk(int cx, int cy)
         for (int y = 0; y < CHUNK_SIZE; y++)
         {
             char* tile = GetTileInChunk(chunk, x, y);
+            Rectangle tileRect = GetTileRect(cx, cy, x, y);
             if (*tile == 1)
-                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, RED);
+            {
+                float sz = TILE_SIZE * 1.125f;
+                float offx = (float)cos((GetTimeUtils() + ((cx * CHUNK_SIZE) + x)) * 5.0f) * 2.0f;
+                float offy = (float)sin((GetTimeUtils() + ((cy * CHUNK_SIZE) + y)) * 5.0f) * 2.0f;
+                DrawRectangleRounded({
+                    tileRect.x - (offx/3),
+                    tileRect.y - (offy/3),
+                    TILE_SIZE,TILE_SIZE
+                }, 0.1f, 2, RED);
+                DrawRectangleRounded({tileRect.x + tileRect.width/2 - sz/2 + offx,
+                    tileRect.y + tileRect.height/2 - sz/2 + offy,
+                    sz, sz},
+                    0.1f, 2,ColorAlpha(RED, 0.35f));
+            } else if (*tile == 2)
+            {
+                Rectangle c = tileRect;
+                float theSine = sin((GetTimeUtils() + x + y) * 0.8f);
+                if (theSine >= 0.5f)
+                {
+                    c.width *= (theSine/6.0f) + 1.0f;
+                    c.height *= (theSine/6.0f) + 1.0f;
+                    c.x = tileRect.x + tileRect.width/2 - c.width/2;
+                    c.y = tileRect.y + tileRect.height/2 - c.height/2;
+                }
+                DrawRectangleRoundedLinesEx(c,0.1f,2,7.0f,PINK);
+            }
         }
     }
 }
@@ -136,9 +168,48 @@ void Map::Update()
             Chunk* c = GetChunk(cx, cy);
             if (c != nullptr && !ChunkIsMarked(cx, cy))
                 MarkChunk(cx, cy);
-
             UpdateChunk(cx, cy);
-
         }
     }
+}
+
+Rectangle Map::GetTileRect(int cx, int cy, int x, int y)
+{
+    Chunk* chunk = GetChunk(cx, cy);
+    if (chunk == nullptr)
+        return {0, 0, 0, 0};
+    char* tile = GetTileInChunk(chunk, x, y);
+    if (tile == nullptr)
+        return {0, 0, 0, 0};
+    if (*tile == 0)
+        return {0, 0, 0, 0};
+
+    return {((float)(cx * CHUNK_SIZE) + x)*TILE_SIZE, ((float)(cy * CHUNK_SIZE) + y)*TILE_SIZE, TILE_SIZE, TILE_SIZE};
+}
+
+Rectangle Map::GetTileRect(int worldX, int worldY)
+{
+    int x = worldX % CHUNK_SIZE;
+    int cx = (worldX - x) / CHUNK_SIZE;
+    int y = worldY % CHUNK_SIZE;
+    int cy = (worldY - y) / CHUNK_SIZE;
+    return GetTileRect(cx, cy, x, y);
+}
+
+bool Map::CollisionCheck(Rectangle rectangle)
+{
+    for (int x = -1; x <= 1; x++)
+    {
+        for (int y = -1; y <= 1; y++)
+        {
+            int worldX = (rectangle.x / TILE_SIZE) + x;
+            int worldY = (rectangle.y / TILE_SIZE) + y;
+            Rectangle tileRect = GetTileRect(worldX, worldY);
+            if (tileRect.width == 0)
+                continue;
+            if (CheckCollisionRecs(tileRect, rectangle))
+                return true;
+        }
+    }
+    return false;
 }

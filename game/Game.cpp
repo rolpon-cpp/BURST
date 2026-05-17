@@ -47,7 +47,7 @@ GameClient::GameClient() : Game()
 void GameClient::Start(string IPAddress, int Port)
 {
     Game::Start(IPAddress, Port);
-    MainPlayer = Player(0, 0, 350.0f, this);
+    MainPlayer = Player((WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2 - 18.0f, (WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2 - 18.0f, 350.0f, this);
     MainClient.Connect(IPAddress, Port);
 }
 
@@ -64,15 +64,15 @@ void GameClient::Update()
 
     MainCamera.Start();
 
+    MainMap.Update();
+
     for (auto &[PlayerID, Player] : MainClient.GetPlayers())
     {
-        Player.SmoothPlayerState(MainClient.GetServerTime(), 0.1f);
+        Player.SmoothPlayerState(MainClient.GetServerTime(), 0.3f);
         Player.Update();
     }
 
     MainPlayer.Update();
-
-    MainMap.Update();
 
     MainCamera.Update();
     MainCamera.Stop();
@@ -84,6 +84,7 @@ void GameClient::Update()
 void GameClient::Quit()
 {
     Game::Quit();
+    Stop();
     MainResources.Unload();
 }
 
@@ -97,6 +98,7 @@ GameServer::GameServer() : Game()
 void GameServer::Start(string IPAddress, int Port)
 {
     Game::Start(IPAddress, Port);
+    MainMap.GenerateMap(65785);
     MainServer.StartServer(IPAddress, Port);
 }
 
