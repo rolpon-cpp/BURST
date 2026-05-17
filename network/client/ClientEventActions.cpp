@@ -17,6 +17,7 @@ void TimeSyncAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     double CurrentTime = GetTimeUtils();
     OurClient.ServerTimeOffset = Packet.timestamp + static_cast<double>(Event.peer->
         roundTripTime) / 2000.0f - CurrentTime;
+    OurClient.Ping = Event.peer->roundTripTime / 1000.0f;
 }
 
 void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)

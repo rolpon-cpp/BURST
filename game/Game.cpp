@@ -68,7 +68,7 @@ void GameClient::Update()
 
     for (auto &[PlayerID, Player] : MainClient.GetPlayers())
     {
-        Player.SmoothPlayerState(MainClient.GetServerTime(), 0.3f);
+        Player.SmoothPlayerState(MainClient.GetServerTime(), 0.2f);
         Player.Update();
     }
 
@@ -76,6 +76,8 @@ void GameClient::Update()
 
     MainCamera.Update();
     MainCamera.Stop();
+
+    DrawText((to_string(static_cast<int>(round(MainClient.Ping * 1000.0f))) + "ms ping").c_str(), 0, 0, 40, BLACK);
 
     MainClient.Update();
     MainClient.UpdateState(MainPlayer.CurrentState);

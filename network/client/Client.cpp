@@ -136,6 +136,7 @@ void Client::Reset()
     Host = nullptr;
     ServerTimeOffset = 0;
     LastUpdatedState = 0;
+    Ping = 0;
     OtherPlayers.clear();
     Connected = false;
 }

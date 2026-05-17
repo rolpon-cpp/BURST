@@ -31,6 +31,7 @@ public:
 
     double ServerTimeOffset;
     double LastUpdatedState;
+    double Ping;
 
     Client(GameClient* game);
     Client();

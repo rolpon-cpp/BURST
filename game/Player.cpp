@@ -88,6 +88,7 @@ void Player::SmoothPlayerState(double ServerTime, double Delay, bool Extrapolate
         {
             highest.position.x = lowest.position.x + lowest.velocity.x * lowest.speed * (render_time - lowest.timestamp);
             highest.position.y = lowest.position.y + lowest.velocity.y * lowest.speed * (render_time - lowest.timestamp);
+            h.timestamp = render_time;
         } else
         {
             highest = CurrentState;
