@@ -29,6 +29,8 @@ void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
         player_join.starting_location.x,
         player_join.starting_location.y,
         {0,0},
+        {0,0},
+        100,
         0,
         Packet.timestamp
     };
@@ -63,7 +65,7 @@ void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
             std::remove_if(
                 OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.begin(),
                 OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.end(),
-                [ServerTime](PlayerState& p) { return ServerTime - p.timestamp >= 1.0f; }
+                [ServerTime](PlayerState& p) { return ServerTime - p.timestamp >= 4.0f; }
             ),
             OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.end()
         );
@@ -72,11 +74,16 @@ void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 
 void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
-    Chunk c;
-    Vector2 loc;
+    ChunkUpload ServerChunkUpload{};
 
-    memcpy(&loc, &Packet.data, sizeof(Vector2));
-    memcpy(&c, Packet.data + sizeof(Vector2), sizeof(Chunk));
+    memcpy(&ServerChunkUpload, &Packet.data, sizeof(ChunkUpload));
 
-    OurClient.game->MainMap.SetChunk(&c, loc.x, loc.y);
+    OurClient.game->MainMap.SetChunk(&ServerChunkUpload.Chunk, ServerChunkUpload.ChunkPos.x, ServerChunkUpload.ChunkPos.y);
+}
+
+void PlayerDamageAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    PlayerDamage damage;
+    memcpy(&damage, &Packet.data, sizeof(PlayerDamage));
+    OurClient.game->MainPlayer.CurrentState.health -= damage.damage;
 }

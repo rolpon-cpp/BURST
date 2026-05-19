@@ -10,6 +10,7 @@
 #include "Client.h"
 #include "../Utils.h"
 #include "../Packet.h"
+#include "../../game/Map.h"
 #include "../../game/Player.h"
 
 using namespace std;
@@ -61,12 +62,14 @@ void Client::Connect(std::string IPAddress, int Port)
 
     if (enet_host_service(Host, &Event, 5000) > 0 &&
         Event.type == ENET_EVENT_TYPE_CONNECT)
-        printf("Connection to some.server.net:1234 succeeded.\n");
+        cout << "Connection to " << IPAddress << ":" << to_string(Port) << " succeeded.\n";
     else
     {
-        printf("Connection to some.server.net:1234 failed.\n");
+        cout << "Connection to " << IPAddress << ":" << to_string(Port) << " failed.\n";
         return;
     }
+
+    enet_host_bandwidth_limit(Host, 0, 0);
 
     printf("Client successfully connected!\n");
 
@@ -132,6 +135,7 @@ void Client::Reset()
     EventActions[PLAYER_LEFT] = &PlayerLeftAction;
     EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
     EventActions[GET_CHUNK] = &GetChunkAction;
+    EventActions[PLAYER_DAMAGE] = &PlayerDamageAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
@@ -146,9 +150,13 @@ void Client::RequestChunk(Vector2 Position)
     if (Host != nullptr && Peer != nullptr)
     {
         Packet myPacket = {};
-        myPacket.timestamp = GetTimeUtils();
+        myPacket.timestamp = GetServerTime();
         myPacket.type = GET_CHUNK;
-        memcpy(&myPacket.data, &Position, sizeof(Vector2));
+
+        ChunkRequest chunkRequest{};
+        chunkRequest.ChunkPos = Position;
+
+        memcpy(&myPacket.data, &chunkRequest, sizeof(ChunkRequest));
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
@@ -160,8 +168,7 @@ void Client::Update()
     if (!Connected)
         return;
     ENetEvent Event;
-    int Active = enet_host_service(Host, &Event, 0);
-    if (Active > 0)
+    while (enet_host_service(Host, &Event, 0) > 0)
     {
         switch (Event.type)
         {
@@ -205,7 +212,7 @@ double Client::GetServerTime()
 
 void Client::UpdateState(PlayerState& State)
 {
-    if (Host != nullptr && Peer != nullptr && GetTimeUtils() - LastUpdatedState >= 1 / 20.0f)
+    if (Host != nullptr && Peer != nullptr && GetTimeUtils() - LastUpdatedState >= 1 / 50.0f)
     {
         Packet myPacket = {};
         myPacket.timestamp = State.timestamp;
@@ -215,5 +222,23 @@ void Client::UpdateState(PlayerState& State)
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
         LastUpdatedState = GetTimeUtils();
+    }
+}
+
+void Client::DamagePlayer(long ID, float Damage)
+{
+    if (Host != nullptr && Peer != nullptr)
+    {
+        Packet myPacket = {};
+        myPacket.timestamp = GetServerTime();
+        myPacket.type = PLAYER_DAMAGE;
+
+        PlayerDamage playerDamage{ID, Damage};
+
+        memcpy(&myPacket.data, &playerDamage, sizeof(PlayerDamage));
+
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+        enet_peer_send(Peer, 0, packet);
+        enet_host_flush(Host);
     }
 }

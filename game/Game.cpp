@@ -60,7 +60,6 @@ void GameClient::Stop()
 void GameClient::Update()
 {
     Game::Update();
-    MainPlayer.MovePlayer(MainClient.GetServerTime());
 
     MainCamera.Start();
 
@@ -68,7 +67,7 @@ void GameClient::Update()
 
     for (auto &[PlayerID, Player] : MainClient.GetPlayers())
     {
-        Player.SmoothPlayerState(MainClient.GetServerTime(), 0.2f);
+        Player.SmoothPlayerState(max(MainClient.Ping * 2.1f, 1.0f / 40.f), true);
         Player.Update();
     }
 

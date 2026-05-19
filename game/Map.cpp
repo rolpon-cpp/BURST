@@ -29,10 +29,13 @@ Map::Map(Game* game)
 
 void Map::GenerateMap(int Seed)
 {
+    printf("Generating map...\n");
     ClearMap();
     std::mt19937 gen(Seed);
-    std::uniform_int_distribution distr(0, 10);
-    Vector2 WorldCenter = {WORLD_CHUNK_SIZE*CHUNK_SIZE / 2.0f, WORLD_CHUNK_SIZE*CHUNK_SIZE / 2.0f};
+    std::uniform_int_distribution distr(25, 50);
+    std::uniform_int_distribution distb(0, 1);
+    std::uniform_int_distribution dista(3, 6);
+    std::uniform_int_distribution distf(0, (WORLD_CHUNK_SIZE*CHUNK_SIZE) - 1);
 
     for (int ChunkY = 0; ChunkY < WORLD_CHUNK_SIZE; ChunkY++)
     {
@@ -47,47 +50,66 @@ void Map::GenerateMap(int Seed)
                     int WorldTileY = (ChunkY * CHUNK_SIZE) + TileY;
                     char* Tile = GetTileInChunk(ThisChunk, TileX, TileY);
                     if (WorldTileX == 0 || WorldTileY == 0 || WorldTileX == (CHUNK_SIZE*WORLD_CHUNK_SIZE) - 1 || WorldTileY == (CHUNK_SIZE*WORLD_CHUNK_SIZE) - 1)
-                    {
                         *Tile = 1;
-                        continue;
-                    }
-                    if (Vector2Distance(Vector2{(float)WorldTileX, (float)WorldTileY}, WorldCenter) >= 4)
-                    {
-                        int roll = distr(gen);
-                        *Tile = roll >= 8 ? 1 : *Tile;
-                        *Tile = roll == 3 ? 2 : *Tile;
-                    }
                 }
             }
         }
     }
 
+    Vector2 WorldCenter = {
+        (CHUNK_SIZE * WORLD_CHUNK_SIZE) / 2.0f,
+        (CHUNK_SIZE * WORLD_CHUNK_SIZE) / 2.0f
+    };
+
+    int StructureCount = distr(gen);
+    for (int i = 0; i < StructureCount; i++)
+    {
+        int x = distf(gen);
+        int y = distf(gen);
+        int TileCount = dista(gen);
+        for (int r = 0; r < TileCount; r++)
+        {
+            if (distb(gen) == 1)
+                x += distb(gen) == 1 ? 1 : -1;
+            else
+                y += distb(gen) == 1 ? 1 : -1;
+            for (int g = 0; g < 5; g++)
+            {
+                int fX = x + g * (distb(gen) == 1 ? 1 : -1);
+                int fY = y + g * (distb(gen) == 1 ? 1 : -1);
+                Vector2 Tile = {(float) fX + 0.5f, (float) fY + 0.5f};
+                if (Vector2Distance(WorldCenter, Tile) >= 15)
+                    SetTileInChunk(1, fX, fY);
+            }
+        }
+    }
+    printf("Map successfully generated!\n");
 }
 
 Chunk* Map::GetChunk(int x, int y)
 {
-    if (x > WORLD_CHUNK_SIZE || x < 0 || y > WORLD_CHUNK_SIZE || y < 0)
+    if (x >= WORLD_CHUNK_SIZE || x < 0 || y >= WORLD_CHUNK_SIZE || y < 0)
         return nullptr;
     return &Chunks[y * WORLD_CHUNK_SIZE + x];
 }
 
 char* Map::GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y)
 {
-    if (x > CHUNK_SIZE || x < 0 || y > CHUNK_SIZE || y < 0)
+    if (x >= CHUNK_SIZE || x < 0 || y >= CHUNK_SIZE || y < 0)
         return nullptr;
     return &ChunkToGetFrom->Data[y * CHUNK_SIZE + x];
 }
 
 void Map::SetChunk(Chunk* ChunkToSet, int x, int y)
 {
-    if (x > WORLD_CHUNK_SIZE || x < 0 || y > WORLD_CHUNK_SIZE || y < 0)
+    if (x >= WORLD_CHUNK_SIZE || x < 0 || y >= WORLD_CHUNK_SIZE || y < 0)
         return;
     Chunks[y * WORLD_CHUNK_SIZE + x] = *ChunkToSet;
 }
 
 void Map::SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y)
 {
-    if (x > CHUNK_SIZE || x < 0 || y > CHUNK_SIZE || y < 0)
+    if (x >= CHUNK_SIZE || x < 0 || y >= CHUNK_SIZE || y < 0)
         return;
     ChunkToSet->Data[y * CHUNK_SIZE + x] = TileToSet;
 }
@@ -154,6 +176,7 @@ void Map::UpdateChunk(int cx, int cy)
                     c.y = tileRect.y + tileRect.height/2 - c.height/2;
                 }
                 DrawRectangleRoundedLinesEx(c,0.1f,2,7.0f,PINK);
+                DrawRectangleRounded({c.x + c.width/2 - (c.width-10)/2, c.y + c.height/2 - (c.height-10)/2, c.width - 10, c.height - 10}, 0.1f, 2, ColorAlpha(PINK, 0.4f));
             }
         }
     }
@@ -204,12 +227,44 @@ bool Map::CollisionCheck(Rectangle rectangle)
         {
             int worldX = (rectangle.x / TILE_SIZE) + x;
             int worldY = (rectangle.y / TILE_SIZE) + y;
+
+            char* tile = GetTileInChunk(worldX, worldY);
+            if (tile == nullptr || *tile != 1)
+                continue;
+
             Rectangle tileRect = GetTileRect(worldX, worldY);
             if (tileRect.width == 0)
                 continue;
+
             if (CheckCollisionRecs(tileRect, rectangle))
                 return true;
         }
     }
     return false;
+}
+
+char* Map::GetTileInChunk(int worldX, int worldY)
+{
+    int x = worldX % CHUNK_SIZE;
+    int cx = (worldX - x) / CHUNK_SIZE;
+    int y = worldY % CHUNK_SIZE;
+    int cy = (worldY - y) / CHUNK_SIZE;
+
+    Chunk* chunk = GetChunk(cx, cy);
+    if (chunk == nullptr)
+        return nullptr;
+    return GetTileInChunk(chunk, x, y);
+}
+
+void Map::SetTileInChunk(char TileToSet, int worldX, int worldY)
+{
+    int x = worldX % CHUNK_SIZE;
+    int cx = (worldX - x) / CHUNK_SIZE;
+    int y = worldY % CHUNK_SIZE;
+    int cy = (worldY - y) / CHUNK_SIZE;
+
+    Chunk* chunk = GetChunk(cx, cy);
+    if (chunk == nullptr)
+        return;
+    SetTileInChunk(chunk, TileToSet, x, y);
 }

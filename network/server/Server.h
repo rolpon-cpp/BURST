@@ -20,6 +20,7 @@ class Server
     unordered_map<PacketType, void(*)(Server& OurServer, Packet& Packet, ENetEvent& Event)> PacketEventActions;
 
     double LastSyncedTime;
+    double LastSentPositions;
 
     void HandleEvents();
     void HandleTimeSync();

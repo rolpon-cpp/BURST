@@ -37,9 +37,11 @@ void Server::Reset()
     Host = nullptr;
     Running = false;
     LastSyncedTime = 0.0f;
+    LastSentPositions = 0.0f;
     LatestPlayerID = -1;
     PacketEventActions.clear();
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
+    PacketEventActions[PLAYER_DAMAGE] = &PlayerDamageAction;
     PacketEventActions[GET_CHUNK] = &GetChunkAction;
 }
 
@@ -62,6 +64,7 @@ void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
         std::cout << "Error creating server host.\n";
         return;
     }
+    enet_host_bandwidth_limit(Host, 0, 0);
     printf("ENet server host successfully created.\n");
     printf("Server successfully connected!\n");
 
@@ -95,7 +98,7 @@ void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
 
     PlayerJoin playerJoin = {0};
     playerJoin.id = static_cast<Player*>(NewPeer->data)->PlayerID;
-    playerJoin.starting_location = {0, 0};
+    playerJoin.starting_location = static_cast<Player*>(NewPeer->data)->CurrentState.position;
     memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
 
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
@@ -161,8 +164,7 @@ void Server::HandleEvents()
     if (!Running)
         return;
     ENetEvent Event;
-    int Active = enet_host_service(Host, &Event, 50);
-    if (Active > 0)
+    while (enet_host_service(Host, &Event, 0) > 0)
     {
         switch (Event.type)
         {
@@ -218,16 +220,20 @@ void Server::HandlePlayerStates()
         return;
     if (Players.size() <= 1)
         return;
+    if (GetTimeUtils() - LastSentPositions < 1.0f / 50.0f)
+        return;
 
     for (auto [id, peer] : Players)
     {
         for (auto [other_id, other_peer] : Players)
         {
             auto* player = reinterpret_cast<Player*>(other_peer->data);
-            if (other_id != id && CompareStates(player->CurrentState, player->LocalState))
+            if (other_id != id)
                 PlayerUpdateNotification(player, peer);
         }
     }
+
+    LastSentPositions = GetTimeUtils();
 
     enet_host_flush(Host);
 }

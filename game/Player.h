@@ -21,10 +21,19 @@ struct PlayerLeft {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct PlayerDamage {
+    int32_t id = 0;
+    float damage = 0;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct PlayerState {
     int32_t id = 0;
     Vector2 position = {0,0};
-    Vector2 velocity = {0,0};
+    Vector2 direction = {0,0};
+    Vector2 velocity = {0, 0};
+    float health = 0;
     float speed = 0;
     double timestamp = 0;
 };
@@ -43,13 +52,15 @@ public:
     PlayerState LastState = { 0 };
     PlayerState LocalState = { 0 };
     std::vector<PlayerState> PreviousPlayerStates;
+    std::vector<int32_t> DashedPlayerIDs;
     Player(float X, float Y, float Speed, GameClient* game);
     Player(PlayerState State, GameClient* game);
     Player();
     ~Player();
     void Update();
-    void SmoothPlayerState(double ServerTime, double Delay, bool Extrapolate = true);
-    void MovePlayer(double ServerTime);
+    void SmoothPlayerState(double Delay, bool Extrapolate = true);
+    Vector2 InputPlayerMovements();
+    void MovePlayer(Vector2 Direction, float Delta, bool UseLocalState = false);
 };
 
 

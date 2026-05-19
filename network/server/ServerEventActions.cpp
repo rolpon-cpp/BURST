@@ -26,9 +26,10 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
 void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
-    Vector2 RequestedChunkPos;
-    memcpy(&RequestedChunkPos, &Packet.data, sizeof(Vector2));
-    Chunk* c = OurServer.game->MainMap.GetChunk(RequestedChunkPos.x,RequestedChunkPos.y);
+    ChunkRequest PlayerChunkRequest{};
+    memcpy(&PlayerChunkRequest, &Packet.data, sizeof(ChunkRequest));
+
+    Chunk* c = OurServer.game->MainMap.GetChunk(PlayerChunkRequest.ChunkPos.x,PlayerChunkRequest.ChunkPos.y);
     if (c == nullptr)
         return;
 
@@ -37,9 +38,23 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
     PacketData.timestamp = GetTimeUtils();
     memset(&PacketData.data, 0, sizeof(PacketData.data));
 
-    memcpy(&PacketData.data, &RequestedChunkPos, sizeof(Vector2));
-    memcpy(PacketData.data + sizeof(Vector2), c, sizeof(Chunk));
+    ChunkUpload PlayerChunkUpload{};
+    PlayerChunkUpload.ChunkPos = PlayerChunkRequest.ChunkPos;
+    PlayerChunkUpload.Chunk = *c;
+
+    memcpy(&PacketData.data, &PlayerChunkUpload, sizeof(ChunkUpload));
 
     ENetPacket* GetChunkENetPacket = enet_packet_create(&PacketData, sizeof(struct Packet), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(Event.peer, 0, GetChunkENetPacket);
+}
+
+void PlayerDamageAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+{
+    PlayerDamage damage;
+    memcpy(&damage, &Packet.data, sizeof(PlayerDamage));
+    if (OurServer.Players.contains(damage.id))
+    {
+        ENetPacket* GetChunkENetPacket = enet_packet_create(&Packet, sizeof(struct Packet), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(OurServer.Players[damage.id], 0, GetChunkENetPacket);
+    }
 }

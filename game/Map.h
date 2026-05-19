@@ -6,7 +6,7 @@
 #define BURST_MAP_H
 
 #define CHUNK_SIZE 12
-#define WORLD_CHUNK_SIZE 2
+#define WORLD_CHUNK_SIZE 10
 #define TILE_SIZE 72
 
 #include <vector>
@@ -26,6 +26,21 @@ struct Chunk
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+struct ChunkRequest
+{
+    Vector2 ChunkPos;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct ChunkUpload
+{
+    Vector2 ChunkPos;
+    Chunk Chunk;
+};
+#pragma pack(pop)
+
 class Game;
 
 class Map
@@ -34,19 +49,28 @@ public:
     Game* game;
     Chunk Chunks[WORLD_CHUNK_SIZE * WORLD_CHUNK_SIZE];
     std::vector<MarkedChunk> MarkedChunks;
+
     Map();
     Map(Game* game);
     ~Map();
+
     void Update();
     void UpdateChunk(int cx, int cy);
+
     void GenerateMap(int Seed);
-    Chunk* GetChunk(int x, int y);
-    char* GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y);
-    void SetChunk(Chunk* ChunkToSet, int x, int y);
-    void SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y);
     void ClearMap();
+
+    Chunk* GetChunk(int x, int y);
+    void SetChunk(Chunk* ChunkToSet, int x, int y);
+    char* GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y);
+    void SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y);
+
+    char* GetTileInChunk(int worldX, int worldY);
+    void SetTileInChunk(char TileToSet, int worldX, int worldY);
+
     bool ChunkIsMarked(int x, int y);
     void MarkChunk(int x, int y);
+
     bool CollisionCheck(Rectangle rectangle);
     Rectangle GetTileRect(int cx, int cy, int x, int y);
     Rectangle GetTileRect(int worldX, int worldY);

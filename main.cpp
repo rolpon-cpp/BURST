@@ -7,19 +7,32 @@
 
 using namespace std;
 
+std::vector<std::string> split(const std::string& s, char delim) {
+    return s | std::views::split(delim)
+             | std::ranges::to<std::vector<std::string>>();
+}
+
 void client() {
     InitWindow(1280, 720, "BURST Client");
     SetTargetFPS(120);
 
     std::string ip = "";
-    std::string prt = "";
-    cout << "pls enter ip: ";
+    cout << "pls enter ip:prt ";
     cin >> ip;
-    cout << "pls enter port: ";
-    cin >> prt;
+
+    int prt = 5000;
+    std::vector<std::string> c = split(ip, ':');
+    if (c.size() == 2)
+    {
+        ip = c.at(0);
+        prt = std::stoi(c.at(1));
+    } else
+    {
+        return;
+    }
 
     GameClient game = GameClient();
-    game.Start(ip, stoi(prt));
+    game.Start(ip, prt);
 
     while (!WindowShouldClose()) {
         BeginDrawing();

@@ -13,14 +13,18 @@
 #include "Game.h"
 #include "../network/client/Client.h"
 
-// Returns true if the states are significantly different
+// Returns true if the states are different
 bool CompareStates(PlayerState State1, PlayerState State2)
 {
     if (Vector2Distance(State1.position, State2.position) > 0)
         return true;
+    if (Vector2Distance(State1.direction, State2.direction) > 0)
+        return true;
     if (Vector2Distance(State1.velocity, State2.velocity) > 0)
         return true;
     if (abs(State1.speed - State2.speed) > 0)
+        return true;
+    if (abs(State1.health - State2.health) > 0)
         return true;
     return false;
 }
@@ -34,6 +38,7 @@ Player::Player(float X, float Y, float Speed, GameClient* game)
     this->game = game;
     PlayerID = -1;
     CurrentState.position = {X, Y};
+    CurrentState.health = 100.0f;
     CurrentState.speed = Speed;
     CurrentState.timestamp = 0;
     LastState = CurrentState;
@@ -53,11 +58,11 @@ Player::~Player()
 {
 }
 
-void Player::SmoothPlayerState(double ServerTime, double Delay, bool Extrapolate)
+void Player::SmoothPlayerState(double Delay, bool Extrapolate)
 {
     this->LocalState.id = this->CurrentState.id;
 
-    double render_time = ServerTime - Delay;
+    double render_time = game->MainClient.GetServerTime() - Delay;
     PlayerState l = { 0 };
     l.timestamp = -1;
     PlayerState h = { 0 };
@@ -86,67 +91,135 @@ void Player::SmoothPlayerState(double ServerTime, double Delay, bool Extrapolate
     {
         if (Extrapolate)
         {
-            highest.position.x = lowest.position.x + lowest.velocity.x * lowest.speed * (render_time - lowest.timestamp);
-            highest.position.y = lowest.position.y + lowest.velocity.y * lowest.speed * (render_time - lowest.timestamp);
-            h.timestamp = render_time;
+            float extrapolated_dt = (render_time - lowest.timestamp);
+            MovePlayer(CurrentState.direction, extrapolated_dt, true);
+            highest = LocalState;
         } else
         {
-            highest = CurrentState;
+            PlayerState f = CurrentState;
+            highest = f;
+            highest.timestamp = render_time;
         }
     }
+
+    Vector2 p = LocalState.position;
+    LocalState = CurrentState;
+    LocalState.position = p;
 
     if (found)
     {
         double time_diff = highest.timestamp - lowest.timestamp;
-        float prog = (render_time - lowest.timestamp) / time_diff;
+        float prog;
+        if (time_diff == 0)
+            prog = 1.0f;
+        else
+            prog = (render_time - lowest.timestamp) / time_diff;
 
         this->LocalState.position = {lowest.position.x + (highest.position.x - lowest.position.x) * prog, lowest.position.y + (highest.position.y - lowest.position.y) * prog};
     }
 
 }
 
-void Player::MovePlayer(double ServerTime)
+Vector2 Player::InputPlayerMovements()
 {
-    LastState = CurrentState;
-    Vector2 MyPlayerVelocity = {0, 0};
+    Vector2 MyPlayerDirection = {0, 0};
     if (IsKeyDown(KEY_A))
-        MyPlayerVelocity.x -= 1;
+        MyPlayerDirection.x -= 1;
     if (IsKeyDown(KEY_D))
-        MyPlayerVelocity.x += 1;
+        MyPlayerDirection.x += 1;
     if (IsKeyDown(KEY_W))
-        MyPlayerVelocity.y -= 1;
+        MyPlayerDirection.y -= 1;
     if (IsKeyDown(KEY_S))
-        MyPlayerVelocity.y += 1;
-    MyPlayerVelocity = Vector2Normalize(MyPlayerVelocity);
+        MyPlayerDirection.y += 1;
+    if (IsKeyPressed(KEY_SPACE))
+        CurrentState.velocity = Vector2Normalize(
+            GetScreenToWorld2D(GetMousePosition(), game->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
+                18, 18
+            })) * 2500.0f;
+    MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
+    return MyPlayerDirection;
+}
 
-    CurrentState.velocity = MyPlayerVelocity;
+void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
+{
+    PlayerState* FinalState = UseLocalState ? &LocalState : &CurrentState;
+    LastState = *FinalState;
+    
+    bool S1x = FinalState->velocity.x > 0;
+    bool S1y = FinalState->velocity.y > 0;
+    FinalState->velocity -= Vector2Normalize(FinalState->velocity) * 6000.0f * Delta;
+    bool S2x = FinalState->velocity.x > 0;
+    bool S2y = FinalState->velocity.y > 0;
+    if (S1x != S2x)
+        FinalState->velocity.x = 0;
+    if (S1y != S2y)
+        FinalState->velocity.y = 0;
 
-    MyPlayerVelocity.x *= CurrentState.speed * GetFrameTime();
-    MyPlayerVelocity.y *= CurrentState.speed * GetFrameTime();
+    if (Vector2Distance({0, 0}, FinalState->velocity) <= 100)
+        DashedPlayerIDs.clear();
+    else
+    {
+        for (auto& [id, player] : game->MainClient.OtherPlayers)
+        {
+            bool HasDashedBefore = false;
+            for (int32_t o_id : DashedPlayerIDs)
+            {
+                if (o_id == id)
+                {
+                    HasDashedBefore = true;
+                    break;
+                }
+            }
+            if (HasDashedBefore)
+                continue;
 
-    Rectangle xCheck = {CurrentState.position.x + MyPlayerVelocity.x, CurrentState.position.y, 36.0f, 36.0f};
+            if (CheckCollisionRecs({FinalState->position.x, FinalState->position.y, 36, 36},
+                                   {player.LocalState.position.x, player.LocalState.position.y, 36, 35}))
+            {
+                game->MainClient.DamagePlayer(id, 20.0f);
+                DashedPlayerIDs.push_back(id);
+            }
+        }
+    }
+
+    FinalState->direction = Direction;
+
+    Direction.x *= FinalState->speed * Delta;
+    Direction.y *= FinalState->speed * Delta;
+
+    Direction.x += FinalState->velocity.x * Delta;
+    Direction.y += FinalState->velocity.y * Delta;
+
+    Rectangle xCheck = {FinalState->position.x + Direction.x, FinalState->position.y, 36.0f, 36.0f};
     if (game->MainMap.CollisionCheck(xCheck))
-        MyPlayerVelocity.x = 0.0f;
-    CurrentState.position.x += MyPlayerVelocity.x;
+        Direction.x = 0.0f;
+    FinalState->position.x += Direction.x;
 
-    Rectangle yCheck = {CurrentState.position.x, CurrentState.position.y + MyPlayerVelocity.y, 36.0f, 36.0f};
+    Rectangle yCheck = {FinalState->position.x, FinalState->position.y + Direction.y, 36.0f, 36.0f};
     if (game->MainMap.CollisionCheck(yCheck))
-        MyPlayerVelocity.y = 0.0f;
-    CurrentState.position.y += MyPlayerVelocity.y;
+        Direction.y = 0.0f;
+    FinalState->position.y += Direction.y;
 
-    CurrentState.timestamp = ServerTime;
-    LocalState = CurrentState;
+    FinalState->timestamp = game->MainClient.GetServerTime();
+    LocalState = *FinalState;
 }
 
 void Player::Update()
 {
+    if (PlayerID < 0)
+        MovePlayer(InputPlayerMovements(), GetFrameTime());
     string tex = "player2";
     if (PlayerID < 0)
         tex = "player1";
     string playerName = "Player " + to_string(PlayerID);
     if (PlayerID < 0)
         playerName = "You";
-    int sz = MeasureText(playerName.c_str(), 25);
-    DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 35, 25, BLACK);
+    int sz = MeasureText(playerName.c_str(), 20);
+
+    float healthSZ =max(min(LocalState.health, 100.0f), 0.0f);
+    DrawRectangleRounded({LocalState.position.x - 32, LocalState.position.y - 17.5f, 100, 12.5f}, 0.35f, 2, ColorAlpha(RED, 0.8f));
+    DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
+
+    DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
     DrawTextureEx(game->MainResources.Textures[tex], LocalState.position, 0, 0.5f, WHITE);
 }
