@@ -28,7 +28,7 @@ void client() {
         prt = std::stoi(c.at(1));
     } else
     {
-        return;
+        ip = "127.0.0.1";
     }
 
     GameClient game = GameClient();

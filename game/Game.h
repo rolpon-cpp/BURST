@@ -6,7 +6,7 @@
 #define BURST_GAME_H
 #include "Resources.h"
 #include "../network/client/Client.h"
-
+#include "UI.h"
 #include "Camera.h"
 #include "Map.h"
 #include "../network/server/Server.h"
@@ -34,6 +34,7 @@ public:
     BurstCamera MainCamera;
     Client MainClient;
     Resources MainResources;
+    UI MainUI;
     GameClient();
     void Start(string IPAddress = "127.0.0.1", int Port = 5000);
     void Stop();

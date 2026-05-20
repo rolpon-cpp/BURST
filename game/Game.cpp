@@ -41,6 +41,8 @@ GameClient::GameClient() : Game()
     MainClient = Client(this);
     MainResources = Resources(this);
 
+    MainUI = UI(this);
+
     MainResources.Load();
 }
 
@@ -54,6 +56,7 @@ void GameClient::Start(string IPAddress, int Port)
 void GameClient::Stop()
 {
     Game::Stop();
+    MainUI.Stop();
     MainClient.Disconnect();
 }
 
@@ -76,15 +79,15 @@ void GameClient::Update()
     MainCamera.Update();
     MainCamera.Stop();
 
-    DrawText((to_string(static_cast<int>(round(MainClient.Ping * 1000.0f))) + "ms ping").c_str(), 0, 0, 40, BLACK);
+    MainUI.Update();
 
     MainClient.Update();
-    MainClient.UpdateState(MainPlayer.CurrentState);
 }
 
 void GameClient::Quit()
 {
     Game::Quit();
+    MainUI.Stop();
     Stop();
     MainResources.Unload();
 }
@@ -99,7 +102,7 @@ GameServer::GameServer() : Game()
 void GameServer::Start(string IPAddress, int Port)
 {
     Game::Start(IPAddress, Port);
-    MainMap.GenerateMap(65785);
+    MainMap.GenerateMap(GetRandomValue(1000,5000));
     MainServer.StartServer(IPAddress, Port);
 }
 

@@ -11,6 +11,7 @@
 
 #include "raymath.h"
 #include "Game.h"
+#include "../network/Utils.h"
 #include "../network/client/Client.h"
 
 // Returns true if the states are different
@@ -41,6 +42,8 @@ Player::Player(float X, float Y, float Speed, GameClient* game)
     CurrentState.health = 100.0f;
     CurrentState.speed = Speed;
     CurrentState.timestamp = 0;
+    DisplayHealth = 100.0f;
+    LastDashed = 0;
     LastState = CurrentState;
     LocalState = CurrentState;
 }
@@ -52,6 +55,8 @@ Player::Player(PlayerState State, GameClient* game)
     CurrentState = State;
     LastState = CurrentState;
     LocalState = CurrentState;
+    DisplayHealth = CurrentState.health;
+    LastDashed = 0;
 }
 
 Player::~Player()
@@ -120,7 +125,7 @@ void Player::SmoothPlayerState(double Delay, bool Extrapolate)
 
 }
 
-Vector2 Player::InputPlayerMovements()
+Vector2 Player::ProcessInputs()
 {
     Vector2 MyPlayerDirection = {0, 0};
     if (IsKeyDown(KEY_A))
@@ -131,36 +136,41 @@ Vector2 Player::InputPlayerMovements()
         MyPlayerDirection.y -= 1;
     if (IsKeyDown(KEY_S))
         MyPlayerDirection.y += 1;
-    if (IsKeyPressed(KEY_SPACE))
+    if (IsKeyPressed(KEY_SPACE) && GetTimeUtils() - LastDashed >= 1)
+    {
         CurrentState.velocity = Vector2Normalize(
             GetScreenToWorld2D(GetMousePosition(), game->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
                 18, 18
             })) * 2500.0f;
+        LastDashed = GetTimeUtils();
+    }
     MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
     return MyPlayerDirection;
 }
 
-void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
+void Player::ProcessVelocity(PlayerState* State, float Delta)
 {
-    PlayerState* FinalState = UseLocalState ? &LocalState : &CurrentState;
-    LastState = *FinalState;
-    
-    bool S1x = FinalState->velocity.x > 0;
-    bool S1y = FinalState->velocity.y > 0;
-    FinalState->velocity -= Vector2Normalize(FinalState->velocity) * 6000.0f * Delta;
-    bool S2x = FinalState->velocity.x > 0;
-    bool S2y = FinalState->velocity.y > 0;
+    bool S1x = State->velocity.x > 0;
+    bool S1y = State->velocity.y > 0;
+    State->velocity -= Vector2Normalize(State->velocity) * 6000.0f * Delta;
+    bool S2x = State->velocity.x > 0;
+    bool S2y = State->velocity.y > 0;
     if (S1x != S2x)
-        FinalState->velocity.x = 0;
+        State->velocity.x = 0;
     if (S1y != S2y)
-        FinalState->velocity.y = 0;
+        State->velocity.y = 0;
+}
 
-    if (Vector2Distance({0, 0}, FinalState->velocity) <= 100)
+void Player::ProcessDashing(PlayerState* State)
+{
+    if (Vector2Distance({0, 0}, State->velocity) <= 100)
         DashedPlayerIDs.clear();
     else
     {
         for (auto& [id, player] : game->MainClient.OtherPlayers)
         {
+            if (PlayerID == id)
+                continue;
             bool HasDashedBefore = false;
             for (int32_t o_id : DashedPlayerIDs)
             {
@@ -173,41 +183,57 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
             if (HasDashedBefore)
                 continue;
 
-            if (CheckCollisionRecs({FinalState->position.x, FinalState->position.y, 36, 36},
-                                   {player.LocalState.position.x, player.LocalState.position.y, 36, 35}))
+            if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
+                                   {player.LocalState.position.x, player.LocalState.position.y, 36, 36}))
             {
                 game->MainClient.DamagePlayer(id, 20.0f);
                 DashedPlayerIDs.push_back(id);
             }
         }
     }
+}
 
-    FinalState->direction = Direction;
+void Player::ProcessDirection(PlayerState* State, float Delta)
+{
+    Vector2 Direction = State->direction;
+    Direction.x *= State->speed * Delta;
+    Direction.y *= State->speed * Delta;
 
-    Direction.x *= FinalState->speed * Delta;
-    Direction.y *= FinalState->speed * Delta;
+    Direction.x += State->velocity.x * Delta;
+    Direction.y += State->velocity.y * Delta;
 
-    Direction.x += FinalState->velocity.x * Delta;
-    Direction.y += FinalState->velocity.y * Delta;
-
-    Rectangle xCheck = {FinalState->position.x + Direction.x, FinalState->position.y, 36.0f, 36.0f};
+    Rectangle xCheck = {State->position.x + Direction.x, State->position.y, 36.0f, 36.0f};
     if (game->MainMap.CollisionCheck(xCheck))
         Direction.x = 0.0f;
-    FinalState->position.x += Direction.x;
+    State->position.x += Direction.x;
 
-    Rectangle yCheck = {FinalState->position.x, FinalState->position.y + Direction.y, 36.0f, 36.0f};
+    Rectangle yCheck = {State->position.x, State->position.y + Direction.y, 36.0f, 36.0f};
     if (game->MainMap.CollisionCheck(yCheck))
         Direction.y = 0.0f;
-    FinalState->position.y += Direction.y;
+    State->position.y += Direction.y;
+}
+
+void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
+{
+    PlayerState* FinalState = UseLocalState ? &LocalState : &CurrentState;
+    LastState = *FinalState;
+    FinalState->direction = Direction;
+
+    ProcessVelocity(FinalState,Delta);
+    ProcessDirection(FinalState, Delta);
+    ProcessDashing(FinalState);
 
     FinalState->timestamp = game->MainClient.GetServerTime();
     LocalState = *FinalState;
+    if (PlayerID < 0)
+        game->MainClient.UpdateState(CurrentState);
 }
 
 void Player::Update()
 {
-    if (PlayerID < 0)
-        MovePlayer(InputPlayerMovements(), GetFrameTime());
+    if (PlayerID < 0) // checks if we're the local player & we are alive
+        MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, GetFrameTime());
+
     string tex = "player2";
     if (PlayerID < 0)
         tex = "player1";
@@ -216,8 +242,9 @@ void Player::Update()
         playerName = "You";
     int sz = MeasureText(playerName.c_str(), 20);
 
-    float healthSZ =max(min(LocalState.health, 100.0f), 0.0f);
-    DrawRectangleRounded({LocalState.position.x - 32, LocalState.position.y - 17.5f, 100, 12.5f}, 0.35f, 2, ColorAlpha(RED, 0.8f));
+    DisplayHealth = Lerp(DisplayHealth, CurrentState.health, 5.0f * GetFrameTime());
+    float healthSZ =max(min(DisplayHealth, 100.0f), 0.0f);
+    DrawRectangleRounded({LocalState.position.x - 32, LocalState.position.y - 17.5f, 100, 12.5f}, 0.35f, 2, RED);
     DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
     DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);

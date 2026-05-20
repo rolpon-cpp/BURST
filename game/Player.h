@@ -45,6 +45,7 @@ class Game;
 class GameClient;
 
 class Player {
+
 public:
     GameClient *game;
     int32_t PlayerID = -1;
@@ -53,13 +54,19 @@ public:
     PlayerState LocalState = { 0 };
     std::vector<PlayerState> PreviousPlayerStates;
     std::vector<int32_t> DashedPlayerIDs;
+    double DisplayHealth;
+    double LastDashed;
+
     Player(float X, float Y, float Speed, GameClient* game);
     Player(PlayerState State, GameClient* game);
     Player();
     ~Player();
     void Update();
     void SmoothPlayerState(double Delay, bool Extrapolate = true);
-    Vector2 InputPlayerMovements();
+    void ProcessVelocity(PlayerState* State, float Delta);
+    void ProcessDashing(PlayerState* State);
+    void ProcessDirection(PlayerState* State, float Delta);
+    Vector2 ProcessInputs();
     void MovePlayer(Vector2 Direction, float Delta, bool UseLocalState = false);
 };
 
