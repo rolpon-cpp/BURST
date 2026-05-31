@@ -20,6 +20,16 @@ BurstCamera::~BurstCamera()
 {
 }
 
+Vector2 BurstCamera::GetWorldMousePos()
+{
+    return GetScreenToWorld2D(GetMousePosition(), RaylibCamera);
+}
+
+Vector2 BurstCamera::GetCameraPos()
+{
+    return RaylibCamera.target;
+}
+
 void BurstCamera::Update()
 {
     if (game->MainClient.Connected)

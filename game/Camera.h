@@ -20,6 +20,8 @@ public:
     BurstCamera(GameClient *game);
     ~BurstCamera();
 
+    Vector2 GetWorldMousePos();
+    Vector2 GetCameraPos();
     void Start();
     void Stop();
     void Update();

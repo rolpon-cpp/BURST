@@ -1,15 +1,22 @@
 
 #include "game_libs.h"
 #include <iostream>
-#include <ranges>
+#include <sstream>
 
+#include "vector"
 #include "game/Game.h"
 
 using namespace std;
 
 std::vector<std::string> split(const std::string& s, char delim) {
-    return s | std::views::split(delim)
-             | std::ranges::to<std::vector<std::string>>();
+    std::stringstream ss(s);
+    std::string token;
+    std::vector<std::string> result;
+
+    while (std::getline(ss, token, delim)) {
+        result.push_back(token);
+    }
+    return result;
 }
 
 void client() {

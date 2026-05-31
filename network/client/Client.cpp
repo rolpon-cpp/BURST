@@ -135,12 +135,14 @@ void Client::Reset()
     EventActions[PLAYER_LEFT] = &PlayerLeftAction;
     EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
     EventActions[GET_CHUNK] = &GetChunkAction;
-    EventActions[PLAYER_DAMAGE] = &PlayerDamageAction;
+    EventActions[PLAYER_DASH] = &PlayerDashAction;
+    EventActions[PLAYER_CHAR_CONFIRM] = &PlayerCharacterConfirmationAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
     LastUpdatedState = 0;
     Ping = 0;
+    OurPlayerID = -1;
     OtherPlayers.clear();
     Connected = false;
 }
@@ -225,19 +227,19 @@ void Client::UpdateState(PlayerState& State)
     }
 }
 
-void Client::DamagePlayer(long ID, float Damage)
+void Client::DashIntoPlayer(int32_t ID, Vector2 ImpactPoint, float Damage)
 {
     if (Host != nullptr && Peer != nullptr)
     {
         Packet myPacket = {};
         myPacket.timestamp = GetServerTime();
-        myPacket.type = PLAYER_DAMAGE;
+        myPacket.type = PLAYER_DASH;
 
-        PlayerDamage playerDamage{ID, Damage};
+        PlayerDash playerDash{ID, ImpactPoint, Damage};
 
-        memcpy(&myPacket.data, &playerDamage, sizeof(PlayerDamage));
+        memcpy(&myPacket.data, &playerDash, sizeof(PlayerDash));
 
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
     }

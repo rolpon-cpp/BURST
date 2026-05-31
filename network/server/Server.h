@@ -34,6 +34,7 @@ class Server
     void PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNotify);
     void PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify);
     void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
+    void PlayerCharacterConfirmationNotification(ENetPeer* NewPeer);
 
 public:
     Game* game;

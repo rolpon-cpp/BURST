@@ -70,7 +70,7 @@ void GameClient::Update()
 
     for (auto &[PlayerID, Player] : MainClient.GetPlayers())
     {
-        Player.SmoothPlayerState(max(MainClient.Ping * 2.1f, 1.0f / 40.f), true);
+        Player.SmoothPlayerState(max((float) MainClient.Ping * 2.1f, 1.0f / 40.f), true);
         Player.Update();
     }
 

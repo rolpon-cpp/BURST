@@ -52,6 +52,8 @@ add_executable(BURST main.cpp
         game/UI.cpp
         game/UI.h
         game/Weapon.cpp
-        game/Weapon.h)
+        game/Weapon.h
+        game/Particles.cpp
+        game/Particles.h)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)

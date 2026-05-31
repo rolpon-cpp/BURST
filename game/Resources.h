@@ -19,6 +19,7 @@ class Resources
 public:
     Game* game;
     unordered_map<string, Texture2D> Textures;
+    unordered_map<string, Shader> Shaders;
 
     Resources();
     Resources(Game *game);

@@ -6,6 +6,8 @@
 
 #include "Player.h"
 
+#include <cfloat>
+#include <cstdint>
 #include <iostream>
 #include <ostream>
 
@@ -25,6 +27,8 @@ bool CompareStates(PlayerState State1, PlayerState State2)
         return true;
     if (abs(State1.speed - State2.speed) > 0)
         return true;
+    if (abs(State1.rotation - State2.rotation) > 0)
+        return true;
     if (abs(State1.health - State2.health) > 0)
         return true;
     return false;
@@ -32,6 +36,9 @@ bool CompareStates(PlayerState State1, PlayerState State2)
 
 Player::Player()
 {
+    this->game = nullptr;
+    LastDashed = 0.0f;
+    DisplayHealth = 0.0f;
 }
 
 Player::Player(float X, float Y, float Speed, GameClient* game)
@@ -61,6 +68,13 @@ Player::Player(PlayerState State, GameClient* game)
 
 Player::~Player()
 {
+}
+
+bool Player::IsLocalPlayer()
+{
+    if (game == nullptr)
+        return false;
+    return PlayerID < 0 || PlayerID == game->MainClient.OurPlayerID;
 }
 
 void Player::SmoothPlayerState(double Delay, bool Extrapolate)
@@ -120,6 +134,7 @@ void Player::SmoothPlayerState(double Delay, bool Extrapolate)
         else
             prog = (render_time - lowest.timestamp) / time_diff;
 
+        this->LocalState.rotation = lowest.rotation + (highest.rotation - lowest.rotation) * prog;
         this->LocalState.position = {lowest.position.x + (highest.position.x - lowest.position.x) * prog, lowest.position.y + (highest.position.y - lowest.position.y) * prog};
     }
 
@@ -145,6 +160,7 @@ Vector2 Player::ProcessInputs()
         LastDashed = GetTimeUtils();
     }
     MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
+    CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), game->MainCamera.GetWorldMousePos()) * RAD2DEG;
     return MyPlayerDirection;
 }
 
@@ -186,11 +202,16 @@ void Player::ProcessDashing(PlayerState* State)
             if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
                                    {player.LocalState.position.x, player.LocalState.position.y, 36, 36}))
             {
-                game->MainClient.DamagePlayer(id, 20.0f);
+                game->MainClient.DashIntoPlayer(id, State->position+Vector2{18.0f,18.0f}, 20.0f);
                 DashedPlayerIDs.push_back(id);
             }
         }
     }
+}
+
+Vector2 Player::GetCenter()
+{
+    return Vector2{LocalState.position.x + 18.0f, LocalState.position.y + 18.0f};
 }
 
 void Player::ProcessDirection(PlayerState* State, float Delta)
@@ -225,28 +246,30 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
 
     FinalState->timestamp = game->MainClient.GetServerTime();
     LocalState = *FinalState;
-    if (PlayerID < 0)
+    if (IsLocalPlayer())
         game->MainClient.UpdateState(CurrentState);
 }
 
 void Player::Update()
 {
-    if (PlayerID < 0) // checks if we're the local player & we are alive
+    CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
+    LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
+    if (IsLocalPlayer()) // checks if we're the local player & we are alive
         MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, GetFrameTime());
 
     string tex = "player2";
-    if (PlayerID < 0)
+    if (IsLocalPlayer())
         tex = "player1";
     string playerName = "Player " + to_string(PlayerID);
-    if (PlayerID < 0)
+    if (IsLocalPlayer())
         playerName = "You";
     int sz = MeasureText(playerName.c_str(), 20);
 
     DisplayHealth = Lerp(DisplayHealth, CurrentState.health, 5.0f * GetFrameTime());
-    float healthSZ =max(min(DisplayHealth, 100.0f), 0.0f);
+    float healthSZ =max(min((float)DisplayHealth, 100.0f), 0.0f);
     DrawRectangleRounded({LocalState.position.x - 32, LocalState.position.y - 17.5f, 100, 12.5f}, 0.35f, 2, RED);
     DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
     DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
-    DrawTextureEx(game->MainResources.Textures[tex], LocalState.position, 0, 0.5f, WHITE);
+    DrawTexturePro(game->MainResources.Textures[tex], {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
 }

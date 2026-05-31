@@ -29,6 +29,14 @@ void Resources::Load()
         string fn = List.paths[i];
         if (fn.ends_with(".png") || fn.ends_with(".jpg") || fn.ends_with(".jpeg"))
             Textures[string(GetFileNameWithoutExt(fn.c_str()))] = LoadTexture(fn.c_str());
+        if (fn.ends_with(".glsl"))
+        {
+            string fn_without_ext = string(GetFileNameWithoutExt(fn.c_str()));
+            bool FragmentShader = true;
+            if (fn_without_ext.ends_with("_vert"))
+                FragmentShader = false;
+            Shaders[fn_without_ext.substr(0, fn_without_ext.size()-5)] = LoadShader((FragmentShader ? "" : fn).c_str(), (FragmentShader ? fn : "").c_str());
+        }
     }
 }
 
@@ -36,5 +44,8 @@ void Resources::Unload()
 {
     for (auto &[name, texture] : Textures)
         UnloadTexture(texture);
+    for (auto &[name, shader] : Shaders)
+        UnloadShader(shader);
     Textures.clear();
+    Shaders.clear();
 }

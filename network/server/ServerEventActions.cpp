@@ -48,13 +48,17 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
     enet_peer_send(Event.peer, 0, GetChunkENetPacket);
 }
 
-void PlayerDamageAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
-    PlayerDamage damage;
-    memcpy(&damage, &Packet.data, sizeof(PlayerDamage));
-    if (OurServer.Players.contains(damage.id))
+    PlayerDash dash;
+    memcpy(&dash, &Packet.data, sizeof(PlayerDash));
+    Player* plr = (Player*)Event.peer->data;
+
+    for (auto &[id, peer] : OurServer.Players)
     {
+        if (id == plr->PlayerID)
+            continue;
         ENetPacket* GetChunkENetPacket = enet_packet_create(&Packet, sizeof(struct Packet), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(OurServer.Players[damage.id], 0, GetChunkENetPacket);
+        enet_peer_send(peer, 0, GetChunkENetPacket);
     }
 }

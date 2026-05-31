@@ -4,7 +4,6 @@
 
 #include "Server.h"
 #include <iostream>
-#include <ranges>
 
 #include "../Utils.h"
 #include "../../game/Player.h"
@@ -41,7 +40,7 @@ void Server::Reset()
     LatestPlayerID = -1;
     PacketEventActions.clear();
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
-    PacketEventActions[PLAYER_DAMAGE] = &PlayerDamageAction;
+    PacketEventActions[PLAYER_DASH] = &PlayerDashAction;
     PacketEventActions[GET_CHUNK] = &GetChunkAction;
 }
 
@@ -105,6 +104,28 @@ void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
     enet_peer_send(PeerToNotify, 0, packet);
 }
 
+void Server::PlayerCharacterConfirmationNotification(ENetPeer* NewPeer)
+{
+    Packet myPacket = {};
+    myPacket.type = PLAYER_CHAR_CONFIRM;
+    myPacket.timestamp = GetTimeUtils();
+
+    Player* plr = static_cast<Player*>(NewPeer->data);
+
+    PlayerCharacterConfirmation confirmation = {0};
+    confirmation.id = plr->PlayerID;
+    confirmation.position = {100 + (float)GetRandomValue(-100, 100), 250
+     + (float)GetRandomValue(-100, 100)};
+    confirmation.health = 100.0f;
+    confirmation.timestamp = GetTimeUtils();
+    confirmation.speed = 350.0f;
+
+    memcpy(&myPacket.data, &confirmation, sizeof(confirmation));
+
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+    enet_peer_send(NewPeer, 0, packet);
+}
+
 void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
 {
     Packet myPacket;
@@ -129,6 +150,9 @@ void Server::PlayerConnect(ENetEvent& Event)
     // Sending time sync to new player
     PlayerTimeSync(Event.peer);
 
+    // confirming character
+    PlayerCharacterConfirmationNotification(Event.peer);
+
     auto* NewPlayer = static_cast<Player*>(Event.peer->data);
 
     for (auto [name,peer] : Players)
@@ -149,7 +173,7 @@ void Server::PlayerDisconnect(ENetEvent& Event)
 {
     auto* OldPlayer = static_cast<Player*>(Event.peer->data);
     printf("Player ID %d has left the game!\n", OldPlayer->PlayerID);
-    for (auto& peer : Players | views::values)
+    for (auto& [id,peer] : Players)
     {
         auto* p = static_cast<Player*>(peer->data);
         if (p->PlayerID != OldPlayer->PlayerID)

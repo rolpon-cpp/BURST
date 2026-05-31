@@ -4,6 +4,7 @@
 
 #ifndef ALLS_PLAYER_H
 #define ALLS_PLAYER_H
+#include <cstdint>
 #include <vector>
 #include "raymath.h"
 
@@ -21,8 +22,9 @@ struct PlayerLeft {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct PlayerDamage {
+struct PlayerDash {
     int32_t id = 0;
+    Vector2 impact = {0,0};
     float damage = 0;
 };
 #pragma pack(pop)
@@ -33,6 +35,17 @@ struct PlayerState {
     Vector2 position = {0,0};
     Vector2 direction = {0,0};
     Vector2 velocity = {0, 0};
+    float rotation = 0;
+    float health = 0;
+    float speed = 0;
+    double timestamp = 0;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PlayerCharacterConfirmation {
+    int32_t id = 0;
+    Vector2 position = {0,0};
     float health = 0;
     float speed = 0;
     double timestamp = 0;
@@ -66,8 +79,10 @@ public:
     void ProcessVelocity(PlayerState* State, float Delta);
     void ProcessDashing(PlayerState* State);
     void ProcessDirection(PlayerState* State, float Delta);
+    Vector2 GetCenter();
     Vector2 ProcessInputs();
     void MovePlayer(Vector2 Direction, float Delta, bool UseLocalState = false);
+    bool IsLocalPlayer();
 };
 
 

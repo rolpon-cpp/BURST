@@ -4,6 +4,7 @@
 
 #include "ClientEventActions.h"
 
+#include <algorithm>
 #include <iostream>
 
 #include "../Utils.h"
@@ -30,6 +31,7 @@ void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
         player_join.starting_location.y,
         {0,0},
         {0,0},
+        0,
         100,
         0,
         Packet.timestamp
@@ -81,9 +83,28 @@ void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     OurClient.game->MainMap.SetChunk(&ServerChunkUpload.Chunk, ServerChunkUpload.ChunkPos.x, ServerChunkUpload.ChunkPos.y);
 }
 
-void PlayerDamageAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+void PlayerDashAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
-    PlayerDamage damage;
-    memcpy(&damage, &Packet.data, sizeof(PlayerDamage));
-    OurClient.game->MainPlayer.CurrentState.health -= damage.damage;
+    PlayerDash dash;
+    memcpy(&dash, &Packet.data, sizeof(PlayerDash));
+    cout << "got dashpacket " << dash.id << " " << OurClient.OurPlayerID << "\n";
+    if (dash.id == OurClient.OurPlayerID)
+    {
+        OurClient.game->MainPlayer.CurrentState.health -= dash.damage;
+        OurClient.game->MainPlayer.CurrentState.health = max(min(OurClient.game->MainPlayer.CurrentState.health, 100.0f), 0.0f);
+    }
+}
+
+void PlayerCharacterConfirmationAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    PlayerCharacterConfirmation confirmation;
+    memcpy(&confirmation, &Packet.data, sizeof(PlayerCharacterConfirmation));
+
+    OurClient.OurPlayerID = confirmation.id;
+    OurClient.game->MainPlayer.CurrentState.id = confirmation.id;
+    OurClient.game->MainPlayer.PlayerID = confirmation.id;
+
+    OurClient.game->MainPlayer.CurrentState.position = confirmation.position;
+    OurClient.game->MainPlayer.CurrentState.health = confirmation.health;
+    OurClient.game->MainPlayer.CurrentState.speed = confirmation.speed;
 }

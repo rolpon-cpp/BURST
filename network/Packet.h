@@ -7,9 +7,11 @@
 
 enum PacketType {
     PLAYER_UPDATE,
-    PLAYER_DAMAGE,
+    PLAYER_DASH,
+    PLAYER_CHAR_CONFIRM,
     PLAYER_JOIN,
     PLAYER_LEFT,
+    NEW_PLAYER,
     TIME_SYNC,
     GET_CHUNK,
 };

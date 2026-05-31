@@ -33,6 +33,8 @@ public:
     double LastUpdatedState;
     double Ping;
 
+    int32_t OurPlayerID;
+
     Client(GameClient* game);
     Client();
     ~Client();
@@ -44,7 +46,7 @@ public:
     std::unordered_map<int32_t, Player>& GetPlayers();
     void UpdateState(PlayerState& State);
     void RequestChunk(Vector2 Position);
-    void DamagePlayer(long ID, float Damage);
+    void DashIntoPlayer(int32_t ID, Vector2 ImpactPoint, float Damage);
     double GetServerTime();
 };
 

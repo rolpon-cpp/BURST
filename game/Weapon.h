@@ -5,10 +5,11 @@
 #ifndef BURST_WEAPON_H
 #define BURST_WEAPON_H
 #include "../game_libs.h"
+#include "string"
 
 enum WeaponType
 {
-    PROJECTILE, MELEE,
+    NONE, PROJECTILE, MELEE,
 };
 
 struct Projectile
@@ -20,10 +21,28 @@ struct Projectile
     double timeShot;
 };
 
+struct WeaponState
+{
+    WeaponType type = NONE;
+    std::string texture;
+};
+
 class Weapon
+{
+    public:
+    std::string Texture;
+    WeaponType Type;
+    float Damage;
+
+    Weapon();
+    ~Weapon();
+
+    void Fire();
+};
+
+class ProjectileWeapon : Weapon
 {
 
 };
-
 
 #endif //BURST_WEAPON_H
