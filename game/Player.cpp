@@ -41,7 +41,7 @@ Player::Player()
     DisplayHealth = 0.0f;
 }
 
-Player::Player(float X, float Y, float Speed, GameClient* game)
+Player::Player(float X, float Y, float Speed, Game* game)
 {
     this->game = game;
     PlayerID = -1;
@@ -55,7 +55,7 @@ Player::Player(float X, float Y, float Speed, GameClient* game)
     LocalState = CurrentState;
 }
 
-Player::Player(PlayerState State, GameClient* game)
+Player::Player(PlayerState State, Game* game)
 {
     this->game = game;
     PlayerID = -1;
@@ -74,70 +74,82 @@ bool Player::IsLocalPlayer()
 {
     if (game == nullptr)
         return false;
-    return PlayerID < 0 || PlayerID == game->MainClient.OurPlayerID;
+    if (!game->IsClient)
+        return false;
+    return PlayerID < 0 || PlayerID == ((GameClient*)game)->MainClient.OurPlayerID;
 }
 
-void Player::SmoothPlayerState(double Delay, bool Extrapolate)
+PlayerState Player::GetPlayerState(double Timestamp)
 {
-    this->LocalState.id = this->CurrentState.id;
-
-    double render_time = game->MainClient.GetServerTime() - Delay;
     PlayerState l = { 0 };
     l.timestamp = -1;
     PlayerState h = { 0 };
     h.timestamp = FLT_MAX;
+
     PlayerState& lowest = l;
     PlayerState& highest = h;
 
-    bool found = false;
-    bool found2 = false;
+    bool FoundBefore = false;
+    bool FoundAfter = false;
 
     for (PlayerState &s : this->PreviousPlayerStates) {
-        if (s.timestamp < render_time && s.timestamp > lowest.timestamp) {
+        if (s.timestamp < Timestamp && s.timestamp > lowest.timestamp) {
             lowest = s;
-            found = true;
+            FoundBefore = true;
         }
     }
 
     for (PlayerState &s : this->PreviousPlayerStates) {
-        if (s.timestamp > render_time && s.timestamp < highest.timestamp && s.position != lowest.position) {
+        if (s.timestamp > Timestamp && s.timestamp < highest.timestamp && s.position != lowest.position) {
             highest = s;
-            found2 = true;
+            FoundAfter = true;
         }
     }
 
-    if (!found2)
+    if (FoundBefore && FoundAfter)
     {
-        if (Extrapolate)
-        {
-            float extrapolated_dt = (render_time - lowest.timestamp);
-            MovePlayer(CurrentState.direction, extrapolated_dt, true);
-            highest = LocalState;
-        } else
-        {
-            PlayerState f = CurrentState;
-            highest = f;
-            highest.timestamp = render_time;
-        }
-    }
+        PlayerState SmoothedState = CurrentState;
 
-    Vector2 p = LocalState.position;
-    LocalState = CurrentState;
-    LocalState.position = p;
-
-    if (found)
-    {
         double time_diff = highest.timestamp - lowest.timestamp;
         float prog;
         if (time_diff == 0)
             prog = 1.0f;
         else
-            prog = (render_time - lowest.timestamp) / time_diff;
+            prog = (Timestamp - lowest.timestamp) / time_diff;
 
-        this->LocalState.rotation = lowest.rotation + (highest.rotation - lowest.rotation) * prog;
-        this->LocalState.position = {lowest.position.x + (highest.position.x - lowest.position.x) * prog, lowest.position.y + (highest.position.y - lowest.position.y) * prog};
+        SmoothedState.rotation = lowest.rotation + (highest.rotation - lowest.rotation) * prog;
+        SmoothedState.position = {lowest.position.x + (highest.position.x - lowest.position.x) * prog, lowest.position.y + (highest.position.y - lowest.position.y) * prog};
+
+        return SmoothedState;
     }
+    if (FoundBefore)
+    {
+        PlayerState StateGuess = lowest;
+        double Delta = Timestamp - lowest.timestamp;
+        if (Delta <= 0)
+            return lowest;
+        if (Delta >= 0.1f)
+            Delta = 0.1f;
 
+        ProcessVelocity(&StateGuess, Delta);
+        ProcessDirection(&StateGuess, Delta);
+
+        StateGuess.position = Vector2Lerp(StateGuess.position, CurrentState.position, 0.5f);
+
+        return StateGuess;
+    }
+    if (!FoundBefore && FoundAfter)
+        return highest;
+
+    return CurrentState;
+}
+
+void Player::SmoothPlayerState(double Delay)
+{
+    PlayerState PredictedState = GetPlayerState(((GameClient*)game)->MainClient.GetServerTime() - Delay);
+    Vector2 PrevPos = LocalState.position;
+    LocalState = PredictedState;
+    LocalState.position = Vector2Lerp(PrevPos, LocalState.position, GetFrameTime() * 24.0f);
 }
 
 Vector2 Player::ProcessInputs()
@@ -151,16 +163,18 @@ Vector2 Player::ProcessInputs()
         MyPlayerDirection.y -= 1;
     if (IsKeyDown(KEY_S))
         MyPlayerDirection.y += 1;
-    if (IsKeyPressed(KEY_SPACE) && GetTimeUtils() - LastDashed >= 1)
+    if (IsKeyPressed(KEY_SPACE) && ((GameClient*)game)->MainClient.GetServerTime() - LastDashed >= 1)
     {
         CurrentState.velocity = Vector2Normalize(
-            GetScreenToWorld2D(GetMousePosition(), game->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
+            GetScreenToWorld2D(GetMousePosition(), ((GameClient*)game)->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
                 18, 18
             })) * 2500.0f;
-        LastDashed = GetTimeUtils();
+        LastDashed = ((GameClient*)game)->MainClient.GetServerTime();
+        IsDashing = true;
+        DashedPlayerID = -1;
     }
     MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
-    CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), game->MainCamera.GetWorldMousePos()) * RAD2DEG;
+    CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) * RAD2DEG;
     return MyPlayerDirection;
 }
 
@@ -179,31 +193,26 @@ void Player::ProcessVelocity(PlayerState* State, float Delta)
 
 void Player::ProcessDashing(PlayerState* State)
 {
-    if (Vector2Distance({0, 0}, State->velocity) <= 100)
-        DashedPlayerIDs.clear();
-    else
-    {
-        for (auto& [id, player] : game->MainClient.OtherPlayers)
-        {
-            if (PlayerID == id)
-                continue;
-            bool HasDashedBefore = false;
-            for (int32_t o_id : DashedPlayerIDs)
-            {
-                if (o_id == id)
-                {
-                    HasDashedBefore = true;
-                    break;
-                }
-            }
-            if (HasDashedBefore)
-                continue;
+    float VelocityMagnitude = Vector2Distance({0, 0}, State->velocity);
 
+    if (VelocityMagnitude < 100 && IsDashing)
+    {
+        IsDashing = false;
+        DashedPlayerID = -1;
+    }
+
+    if (IsDashing)
+    {
+        for (auto &[id, player] : ((GameClient*)game)->MainClient.OtherPlayers)
+        {
+            if (id == PlayerID)
+                continue;
             if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
-                                   {player.LocalState.position.x, player.LocalState.position.y, 36, 36}))
+                                   {player.CurrentState.position.x, player.CurrentState.position.y, 36, 36}))
             {
-                game->MainClient.DashIntoPlayer(id, State->position+Vector2{18.0f,18.0f}, 20.0f);
-                DashedPlayerIDs.push_back(id);
+                ((GameClient*)game)->MainClient.DashIntoPlayer(State->position, min(max(VelocityMagnitude / 400.0f, 0.0f), 20.0f));
+                DashedPlayerID = player.CurrentState.id;
+                break;
             }
         }
     }
@@ -214,7 +223,7 @@ Vector2 Player::GetCenter()
     return Vector2{LocalState.position.x + 18.0f, LocalState.position.y + 18.0f};
 }
 
-void Player::ProcessDirection(PlayerState* State, float Delta)
+void Player::ProcessDirection(PlayerState* State, float Delta, int Steps)
 {
     Vector2 Direction = State->direction;
     Direction.x *= State->speed * Delta;
@@ -223,15 +232,21 @@ void Player::ProcessDirection(PlayerState* State, float Delta)
     Direction.x += State->velocity.x * Delta;
     Direction.y += State->velocity.y * Delta;
 
-    Rectangle xCheck = {State->position.x + Direction.x, State->position.y, 36.0f, 36.0f};
-    if (game->MainMap.CollisionCheck(xCheck))
-        Direction.x = 0.0f;
-    State->position.x += Direction.x;
+    for (int i = 0; i < Steps; i++)
+    {
+        float DeltaX = (Direction.x / Steps) * (i + 1);
+        float DeltaY = (Direction.y / Steps) * (i + 1);
 
-    Rectangle yCheck = {State->position.x, State->position.y + Direction.y, 36.0f, 36.0f};
-    if (game->MainMap.CollisionCheck(yCheck))
-        Direction.y = 0.0f;
-    State->position.y += Direction.y;
+        Rectangle xCheck = {State->position.x + DeltaX, State->position.y, 36.0f, 36.0f};
+        if (game->MainMap.CollisionCheck(xCheck))
+            DeltaX = 0.0f;
+        State->position.x += DeltaX;
+
+        Rectangle yCheck = {State->position.x, State->position.y + DeltaY, 36.0f, 36.0f};
+        if (game->MainMap.CollisionCheck(yCheck))
+            DeltaY = 0.0f;
+        State->position.y += DeltaY;
+    }
 }
 
 void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
@@ -244,10 +259,10 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
     ProcessDirection(FinalState, Delta);
     ProcessDashing(FinalState);
 
-    FinalState->timestamp = game->MainClient.GetServerTime();
+    FinalState->timestamp = ((GameClient*)game)->MainClient.GetServerTime();
     LocalState = *FinalState;
     if (IsLocalPlayer())
-        game->MainClient.UpdateState(CurrentState);
+        ((GameClient*)game)->MainClient.UpdateState(CurrentState);
 }
 
 void Player::Update()
@@ -271,5 +286,5 @@ void Player::Update()
     DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
     DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
-    DrawTexturePro(game->MainResources.Textures[tex], {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+    DrawTexturePro(((GameClient*)game)->MainResources.Textures[tex], {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
 }

@@ -135,8 +135,8 @@ void Client::Reset()
     EventActions[PLAYER_LEFT] = &PlayerLeftAction;
     EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
     EventActions[GET_CHUNK] = &GetChunkAction;
-    EventActions[PLAYER_DASH] = &PlayerDashAction;
-    EventActions[PLAYER_CHAR_CONFIRM] = &PlayerCharacterConfirmationAction;
+    EventActions[PLAYER_HEALTH_UPDATE] = &HealthUpdateAction;
+    EventActions[PLAYER_CHAR_RESET] = &PlayerCharacterResetAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
@@ -227,7 +227,7 @@ void Client::UpdateState(PlayerState& State)
     }
 }
 
-void Client::DashIntoPlayer(int32_t ID, Vector2 ImpactPoint, float Damage)
+void Client::DashIntoPlayer(Vector2 ImpactPoint, float Damage)
 {
     if (Host != nullptr && Peer != nullptr)
     {
@@ -235,7 +235,7 @@ void Client::DashIntoPlayer(int32_t ID, Vector2 ImpactPoint, float Damage)
         myPacket.timestamp = GetServerTime();
         myPacket.type = PLAYER_DASH;
 
-        PlayerDash playerDash{ID, ImpactPoint, Damage};
+        PlayerDash playerDash{ImpactPoint, Damage};
 
         memcpy(&myPacket.data, &playerDash, sizeof(PlayerDash));
 

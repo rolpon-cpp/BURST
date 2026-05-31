@@ -20,7 +20,7 @@ class Server
     unordered_map<PacketType, void(*)(Server& OurServer, Packet& Packet, ENetEvent& Event)> PacketEventActions;
 
     double LastSyncedTime;
-    double LastSentPositions;
+    double LastUpdatedPlayers;
 
     void HandleEvents();
     void HandleTimeSync();
@@ -33,8 +33,8 @@ class Server
     void PlayerCreateCharacter(ENetPeer* Peer);
     void PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNotify);
     void PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify);
+    void PlayerHealthNotification(ENetPeer* PeerToNotify);
     void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
-    void PlayerCharacterConfirmationNotification(ENetPeer* NewPeer);
 
 public:
     Game* game;

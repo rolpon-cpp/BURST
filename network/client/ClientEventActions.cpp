@@ -83,28 +83,25 @@ void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     OurClient.game->MainMap.SetChunk(&ServerChunkUpload.Chunk, ServerChunkUpload.ChunkPos.x, ServerChunkUpload.ChunkPos.y);
 }
 
-void PlayerDashAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+void HealthUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
-    PlayerDash dash;
-    memcpy(&dash, &Packet.data, sizeof(PlayerDash));
-    cout << "got dashpacket " << dash.id << " " << OurClient.OurPlayerID << "\n";
-    if (dash.id == OurClient.OurPlayerID)
-    {
-        OurClient.game->MainPlayer.CurrentState.health -= dash.damage;
-        OurClient.game->MainPlayer.CurrentState.health = max(min(OurClient.game->MainPlayer.CurrentState.health, 100.0f), 0.0f);
-    }
+    PlayerHealthUpdate health_update;
+    memcpy(&health_update, &Packet.data, sizeof(health_update));
+
+    OurClient.game->MainPlayer.CurrentState.health = health_update.health;
+    OurClient.game->MainPlayer.LocalState.health = health_update.health;
 }
 
-void PlayerCharacterConfirmationAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+void PlayerCharacterResetAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
-    PlayerCharacterConfirmation confirmation;
-    memcpy(&confirmation, &Packet.data, sizeof(PlayerCharacterConfirmation));
+    PlayerCharacterReset resetChar;
+    memcpy(&resetChar, &Packet.data, sizeof(PlayerCharacterReset));
 
-    OurClient.OurPlayerID = confirmation.id;
-    OurClient.game->MainPlayer.CurrentState.id = confirmation.id;
-    OurClient.game->MainPlayer.PlayerID = confirmation.id;
+    OurClient.OurPlayerID = resetChar.id;
+    OurClient.game->MainPlayer.CurrentState.id = resetChar.id;
+    OurClient.game->MainPlayer.PlayerID = resetChar.id;
 
-    OurClient.game->MainPlayer.CurrentState.position = confirmation.position;
-    OurClient.game->MainPlayer.CurrentState.health = confirmation.health;
-    OurClient.game->MainPlayer.CurrentState.speed = confirmation.speed;
+    OurClient.game->MainPlayer.CurrentState.position = resetChar.position;
+    OurClient.game->MainPlayer.CurrentState.health = resetChar.health;
+    OurClient.game->MainPlayer.CurrentState.speed = resetChar.speed;
 }

@@ -36,7 +36,7 @@ void Server::Reset()
     Host = nullptr;
     Running = false;
     LastSyncedTime = 0.0f;
-    LastSentPositions = 0.0f;
+    LastUpdatedPlayers = 0.0f;
     LatestPlayerID = -1;
     PacketEventActions.clear();
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
@@ -83,10 +83,32 @@ void Server::PlayerTimeSync(ENetPeer* Peer)
 void Server::PlayerCreateCharacter(ENetPeer* Peer)
 {
     LatestPlayerID += 1;
-    auto* newPlayer = new Player();
+    auto* newPlayer = new Player({
+        LatestPlayerID, {100 + (float)GetRandomValue(-100, 100), 250
+     + (float)GetRandomValue(-100, 100)}, {0, 0}, {0, 0}, 0, 100.0f, 350.0f, GetTimeUtils()
+    }, game);
     newPlayer->PlayerID = LatestPlayerID;
+    newPlayer->LastState = newPlayer->CurrentState;
+    newPlayer->LocalState = newPlayer->CurrentState;
+
     Peer->data = newPlayer;
     Players[LatestPlayerID] = Peer;
+
+    Packet myPacket = {};
+    myPacket.type = PLAYER_CHAR_RESET;
+    myPacket.timestamp = GetTimeUtils();
+
+    PlayerCharacterReset charReset = {0};
+    charReset.id = newPlayer->PlayerID;
+    charReset.position = newPlayer->CurrentState.position;
+    charReset.health = newPlayer->CurrentState.health;
+    charReset.timestamp = GetTimeUtils();
+    charReset.speed = newPlayer->CurrentState.speed;
+
+    memcpy(&myPacket.data, &charReset, sizeof(charReset));
+
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+    enet_peer_send(Peer, 0, packet);
 }
 
 void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
@@ -102,28 +124,6 @@ void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
 
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(PeerToNotify, 0, packet);
-}
-
-void Server::PlayerCharacterConfirmationNotification(ENetPeer* NewPeer)
-{
-    Packet myPacket = {};
-    myPacket.type = PLAYER_CHAR_CONFIRM;
-    myPacket.timestamp = GetTimeUtils();
-
-    Player* plr = static_cast<Player*>(NewPeer->data);
-
-    PlayerCharacterConfirmation confirmation = {0};
-    confirmation.id = plr->PlayerID;
-    confirmation.position = {100 + (float)GetRandomValue(-100, 100), 250
-     + (float)GetRandomValue(-100, 100)};
-    confirmation.health = 100.0f;
-    confirmation.timestamp = GetTimeUtils();
-    confirmation.speed = 350.0f;
-
-    memcpy(&myPacket.data, &confirmation, sizeof(confirmation));
-
-    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-    enet_peer_send(NewPeer, 0, packet);
 }
 
 void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
@@ -149,9 +149,6 @@ void Server::PlayerConnect(ENetEvent& Event)
 
     // Sending time sync to new player
     PlayerTimeSync(Event.peer);
-
-    // confirming character
-    PlayerCharacterConfirmationNotification(Event.peer);
 
     auto* NewPlayer = static_cast<Player*>(Event.peer->data);
 
@@ -209,6 +206,9 @@ void Server::HandleEvents()
 
                 memcpy(&packet, Event.packet->data, Event.packet->dataLength);
 
+                if (GetTimeUtils() - packet.timestamp >= 1.0f)
+                    packet.timestamp = GetTimeUtils();
+
                 if (PacketEventActions.contains(packet.type))
                     PacketEventActions[packet.type](*this, packet, Event);
 
@@ -244,11 +244,12 @@ void Server::HandlePlayerStates()
         return;
     if (Players.size() <= 1)
         return;
-    if (GetTimeUtils() - LastSentPositions < 1.0f / 50.0f)
+    if (GetTimeUtils() - LastUpdatedPlayers < 1.0f / 50.0f)
         return;
 
     for (auto [id, peer] : Players)
     {
+        PlayerHealthNotification(peer);
         for (auto [other_id, other_peer] : Players)
         {
             auto* player = reinterpret_cast<Player*>(other_peer->data);
@@ -257,9 +258,23 @@ void Server::HandlePlayerStates()
         }
     }
 
-    LastSentPositions = GetTimeUtils();
+    LastUpdatedPlayers = GetTimeUtils();
 
     enet_host_flush(Host);
+}
+
+void Server::PlayerHealthNotification(ENetPeer* PeerToNotify)
+{
+    Player* plr = static_cast<Player*>(PeerToNotify->data);
+    Packet myPacket;
+    myPacket.type = PLAYER_HEALTH_UPDATE;
+    myPacket.timestamp = plr->CurrentState.timestamp;
+
+    PlayerHealthUpdate health_update = {plr->CurrentState.health};
+    memcpy(&myPacket.data, &health_update, sizeof(health_update));
+
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+    enet_peer_send(PeerToNotify, 0, packet);
 }
 
 void Server::PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNotify)
@@ -272,7 +287,7 @@ void Server::PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNot
 
     memcpy(&myPacket.data, &UpdatedPlayer->CurrentState, sizeof(UpdatedPlayer->CurrentState));
 
-    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
+    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(PeerToNotify, 0, packet);
 }
 

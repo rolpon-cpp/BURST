@@ -8,6 +8,8 @@
 #include <vector>
 #include "raymath.h"
 
+#define PLR_DASH_COOLDOWN 1
+
 #pragma pack(push, 1)
 struct PlayerJoin {
     int32_t id = 0;
@@ -23,9 +25,14 @@ struct PlayerLeft {
 
 #pragma pack(push, 1)
 struct PlayerDash {
-    int32_t id = 0;
     Vector2 impact = {0,0};
     float damage = 0;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PlayerHealthUpdate {
+    float health = 0;
 };
 #pragma pack(pop)
 
@@ -43,7 +50,7 @@ struct PlayerState {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct PlayerCharacterConfirmation {
+struct PlayerCharacterReset {
     int32_t id = 0;
     Vector2 position = {0,0};
     float health = 0;
@@ -60,26 +67,34 @@ class GameClient;
 class Player {
 
 public:
-    GameClient *game;
+    Game *game;
     int32_t PlayerID = -1;
     PlayerState CurrentState = { 0 };
     PlayerState LastState = { 0 };
     PlayerState LocalState = { 0 };
     std::vector<PlayerState> PreviousPlayerStates;
-    std::vector<int32_t> DashedPlayerIDs;
-    double DisplayHealth;
-    double LastDashed;
 
-    Player(float X, float Y, float Speed, GameClient* game);
-    Player(PlayerState State, GameClient* game);
+    int32_t DashedPlayerID = -1;
+    double LastDashed = 0.0f;
+    bool IsDashing = false;
+
+    double DisplayHealth;
+
+    Player(float X, float Y, float Speed, Game* game);
+    Player(PlayerState State, Game* game);
     Player();
     ~Player();
+
     void Update();
-    void SmoothPlayerState(double Delay, bool Extrapolate = true);
+    Vector2 GetCenter();
+
     void ProcessVelocity(PlayerState* State, float Delta);
     void ProcessDashing(PlayerState* State);
-    void ProcessDirection(PlayerState* State, float Delta);
-    Vector2 GetCenter();
+    void ProcessDirection(PlayerState* State, float Delta, int Steps = 1);
+
+    void SmoothPlayerState(double Delay);
+    PlayerState GetPlayerState(double Timestamp);
+
     Vector2 ProcessInputs();
     void MovePlayer(Vector2 Direction, float Delta, bool UseLocalState = false);
     bool IsLocalPlayer();

@@ -46,7 +46,7 @@ public:
     std::unordered_map<int32_t, Player>& GetPlayers();
     void UpdateState(PlayerState& State);
     void RequestChunk(Vector2 Position);
-    void DashIntoPlayer(int32_t ID, Vector2 ImpactPoint, float Damage);
+    void DashIntoPlayer(Vector2 ImpactPoint, float Damage);
     double GetServerTime();
 };
 

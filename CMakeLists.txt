@@ -3,6 +3,8 @@ project(BURST)
 
 set(CMAKE_CXX_STANDARD 26)
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -57,3 +59,9 @@ add_executable(BURST main.cpp
         game/Particles.h)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)
+
+if (MINGW)
+    target_link_options(BouncingPlus PRIVATE
+            -static
+    )
+endif ()
