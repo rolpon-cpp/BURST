@@ -5,6 +5,8 @@
 #include "Resources.h"
 #include <iostream>
 
+#include "rlgl.h"
+
 using namespace std;
 
 Resources::Resources()
@@ -22,6 +24,7 @@ Resources::Resources(Game* game)
 
 void Resources::Load()
 {
+    DefaultShader = Shader{rlGetShaderIdDefault(), rlGetShaderLocsDefault()};
     Unload();
     FilePathList List = LoadDirectoryFiles(".\\assets");
     for (int i = 0; i < List.count; i++)
@@ -35,7 +38,11 @@ void Resources::Load()
             bool FragmentShader = true;
             if (fn_without_ext.ends_with("_vert"))
                 FragmentShader = false;
-            Shaders[fn_without_ext.substr(0, fn_without_ext.size()-5)] = LoadShader((FragmentShader ? "" : fn).c_str(), (FragmentShader ? fn : "").c_str());
+            Shader TheShader = LoadShader((FragmentShader ? "" : fn).c_str(), (FragmentShader ? fn : "").c_str());
+            if (IsShaderValid(TheShader))
+                Shaders[fn_without_ext.substr(0, fn_without_ext.size()-5)] = TheShader;
+            else
+                cout << "WARNING: FAILED TO LOAD SHADER!!!!!!!!!\n";
         }
     }
 }
@@ -48,4 +55,18 @@ void Resources::Unload()
         UnloadShader(shader);
     Textures.clear();
     Shaders.clear();
+}
+
+Texture2D& Resources::GetTexture(string texture_name)
+{
+    if (!Textures.contains(texture_name))
+        return Textures["placeholder"];
+    return Textures[texture_name];
+}
+
+Shader& Resources::GetShader(string shader_name)
+{
+    if (!Shaders.contains(shader_name))
+        return DefaultShader;
+    return Shaders[shader_name];
 }

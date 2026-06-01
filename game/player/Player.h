@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <vector>
 #include "raymath.h"
+#include "Weapon.h"
 
 #define PLR_DASH_COOLDOWN 1
 
@@ -45,6 +46,7 @@ struct PlayerState {
     float rotation = 0;
     float health = 0;
     float speed = 0;
+    WeaponState weapon_state = {NONE, ""};
     double timestamp = 0;
 };
 #pragma pack(pop)
@@ -60,6 +62,7 @@ struct PlayerCharacterReset {
 #pragma pack(pop)
 
 bool CompareStates(PlayerState State1, PlayerState State2);
+bool DetectIllegalStates(PlayerState BaseState, PlayerState SuspectedState);
 
 class Game;
 class GameClient;

@@ -8,7 +8,7 @@
 #include <iostream>
 
 #include "../Utils.h"
-#include "../../game/Map.h"
+#include "../../game/world/Map.h"
 #include "../../game/Game.h"
 #include "Client.h"
 #include "../Packet.h"
@@ -34,6 +34,7 @@ void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
         0,
         100,
         0,
+        WeaponState{},
         Packet.timestamp
     };
     OurClient.OtherPlayers[player_join.id] = Player(s, OurClient.game);

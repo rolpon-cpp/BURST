@@ -7,8 +7,8 @@
 #include "Resources.h"
 #include "../network/client/Client.h"
 #include "UI.h"
-#include "Camera.h"
-#include "Map.h"
+#include "player/Camera.h"
+#include "world/Map.h"
 #include "../network/server/Server.h"
 
 class Game
@@ -21,6 +21,7 @@ public:
     ~Game();
 
     void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    double GetTime();
     void Stop();
     void Update();
     void Quit();
@@ -29,7 +30,6 @@ public:
 class GameClient : public Game
 {
 public:
-    // Game
     Player MainPlayer;
     BurstCamera MainCamera;
     Client MainClient;

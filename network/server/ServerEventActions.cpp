@@ -7,8 +7,8 @@
 #include <iostream>
 
 #include "Server.h"
-#include "../../game/Player.h"
-#include "../../game/Map.h"
+#include "../../game/player/Player.h"
+#include "../../game/world/Map.h"
 #include "../../game/Game.h"
 #include "../Packet.h"
 #include "../Utils.h"
@@ -16,7 +16,6 @@
 void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
     auto* PlayerToUpdate = static_cast<Player*>(Event.peer->data);
-    PlayerToUpdate->LastState = PlayerToUpdate->CurrentState;
 
     memcpy(&PlayerToUpdate->CurrentState, &Packet.data, sizeof(PlayerState));
     
@@ -26,27 +25,27 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
     PlayerToUpdate->LastState.id = PlayerToUpdate->PlayerID;
 
     // Timestamp anticheat check
-    if (abs(PlayerToUpdate->CurrentState.timestamp - GetTimeUtils()) >= 1.0f)
-        PlayerToUpdate->CurrentState.timestamp = GetTimeUtils();
+    if (abs(PlayerToUpdate->CurrentState.timestamp - OurServer.game->GetTime()) >= 1.0f)
+        PlayerToUpdate->CurrentState.timestamp = OurServer.game->GetTime();
 
     // Health anticheat check
     if (PlayerToUpdate->CurrentState.health <= 0.0f)
         PlayerToUpdate->CurrentState.position = PlayerToUpdate->LastState.position;
 
-    // Teleportation anticheat check
-    if (Vector2Distance(PlayerToUpdate->CurrentState.position, PlayerToUpdate->LastState.position) >= 500.0f)
+    // Illegal state anticheat check
+    if (DetectIllegalStates(PlayerToUpdate->LastState, PlayerToUpdate->CurrentState))
     {
-        PlayerToUpdate->CurrentState.position = PlayerToUpdate->LastState.position;
+        PlayerToUpdate->CurrentState = PlayerToUpdate->LastState;
 
         struct Packet myPacket = {};
         myPacket.type = PLAYER_CHAR_RESET;
-        myPacket.timestamp = GetTimeUtils();
+        myPacket.timestamp = OurServer.game->GetTime();
 
         PlayerCharacterReset charReset = {0};
         charReset.id = PlayerToUpdate->PlayerID;
-        charReset.position = PlayerToUpdate->LastState.position;
+        charReset.position = PlayerToUpdate->CurrentState.position;
         charReset.health = PlayerToUpdate->CurrentState.health;
-        charReset.timestamp = GetTimeUtils();
+        charReset.timestamp = OurServer.game->GetTime();
         charReset.speed = PlayerToUpdate->CurrentState.speed;
 
         memcpy(&myPacket.data, &charReset, sizeof(charReset));
@@ -61,10 +60,12 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
             std::remove_if(
                 PlayerToUpdate->PreviousPlayerStates.begin(),
                 PlayerToUpdate->PreviousPlayerStates.end(),
-                [](PlayerState& p) { return GetTimeUtils() - p.timestamp >= 4.0f; }
+                [OurServer](PlayerState& p) { return OurServer.game->GetTime() - p.timestamp >= 4.0f; }
             ),
             PlayerToUpdate->PreviousPlayerStates.end()
         );
+
+    PlayerToUpdate->LastState = PlayerToUpdate->CurrentState;
 }
 
 void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
@@ -78,7 +79,7 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
     struct Packet PacketData;
     PacketData.type = GET_CHUNK;
-    PacketData.timestamp = GetTimeUtils();
+    PacketData.timestamp = OurServer.game->GetTime();
     memset(&PacketData.data, 0, sizeof(PacketData.data));
 
     ChunkUpload PlayerChunkUpload{};
@@ -94,10 +95,10 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
     Player* DashingPlayer = (Player*)Event.peer->data;
-    if (GetTimeUtils() - DashingPlayer->LastDashed < 1.0f)
+    if (OurServer.game->GetTime() - DashingPlayer->LastDashed < 1.0f)
         return;
 
-    DashingPlayer->LastDashed = GetTimeUtils();
+    DashingPlayer->LastDashed = OurServer.game->GetTime();
 
     PlayerDash dash;
     memcpy(&dash, &Packet.data, sizeof(PlayerDash));

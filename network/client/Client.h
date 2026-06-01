@@ -8,7 +8,7 @@
 #include "../../game_libs.h"
 #include <string>
 #include <unordered_map>
-#include "../../game/Player.h"
+#include "../../game/player/Player.h"
 #include "../Packet.h"
 
 using namespace std;

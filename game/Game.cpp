@@ -4,6 +4,8 @@
 
 #include "Game.h"
 
+#include "../network/Utils.h"
+
 Game::Game()
 {
     MainMap = Map(this);
@@ -11,6 +13,13 @@ Game::Game()
 
 Game::~Game()
 {
+}
+
+double Game::GetTime()
+{
+    if (!IsClient)
+        return GetTimeUtils();
+    return static_cast<GameClient*>(this)->MainClient.GetServerTime();
 }
 
 void Game::Start(string IPAddress, int Port)

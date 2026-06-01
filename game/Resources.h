@@ -21,9 +21,14 @@ public:
     unordered_map<string, Texture2D> Textures;
     unordered_map<string, Shader> Shaders;
 
+    Shader DefaultShader;
+
     Resources();
     Resources(Game *game);
     ~Resources();
+
+    Texture2D& GetTexture(string texture_name);
+    Shader& GetShader(string shader_name);
 
     void Load();
     void Unload();

@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include "../Packet.h"
-#include "../../game/Player.h"
+#include "../../game/player/Player.h"
 
 using namespace std;
 class Game;

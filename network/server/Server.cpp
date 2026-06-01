@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "../Utils.h"
-#include "../../game/Player.h"
+#include "../../game/player/Player.h"
 #include "ServerEventActions.h"
 #include "../../game/Game.h"
 
@@ -75,7 +75,7 @@ void Server::PlayerTimeSync(ENetPeer* Peer)
 {
     Packet myPacket = {};
     myPacket.type = TIME_SYNC;
-    myPacket.timestamp = GetTimeUtils();
+    myPacket.timestamp = game->GetTime();
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(Peer, 0, packet);
 }
@@ -85,7 +85,7 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
     LatestPlayerID += 1;
     auto* newPlayer = new Player({
         LatestPlayerID, {100 + (float)GetRandomValue(-100, 100), 250
-     + (float)GetRandomValue(-100, 100)}, {0, 0}, {0, 0}, 0, 100.0f, 350.0f, GetTimeUtils()
+     + (float)GetRandomValue(-100, 100)}, {0, 0}, {0, 0}, 0, 100.0f, 350.0f, WeaponState{}, game->GetTime()
     }, game);
     newPlayer->PlayerID = LatestPlayerID;
     newPlayer->LastState = newPlayer->CurrentState;
@@ -96,13 +96,13 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
 
     Packet myPacket = {};
     myPacket.type = PLAYER_CHAR_RESET;
-    myPacket.timestamp = GetTimeUtils();
+    myPacket.timestamp = game->GetTime();
 
     PlayerCharacterReset charReset = {0};
     charReset.id = newPlayer->PlayerID;
     charReset.position = newPlayer->CurrentState.position;
     charReset.health = newPlayer->CurrentState.health;
-    charReset.timestamp = GetTimeUtils();
+    charReset.timestamp = game->GetTime();
     charReset.speed = newPlayer->CurrentState.speed;
 
     memcpy(&myPacket.data, &charReset, sizeof(charReset));
@@ -115,7 +115,7 @@ void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
 {
     Packet myPacket = {};
     myPacket.type = PLAYER_JOIN;
-    myPacket.timestamp = GetTimeUtils();
+    myPacket.timestamp = game->GetTime();
 
     PlayerJoin playerJoin = {0};
     playerJoin.id = static_cast<Player*>(NewPeer->data)->PlayerID;
@@ -130,7 +130,7 @@ void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
 {
     Packet myPacket;
     myPacket.type = PLAYER_LEFT;
-    myPacket.timestamp = GetTimeUtils();
+    myPacket.timestamp = game->GetTime();
 
     PlayerLeft left = {0};
     left.id = static_cast<Player*>(OldPeer->data)->PlayerID;
@@ -206,8 +206,8 @@ void Server::HandleEvents()
 
                 memcpy(&packet, Event.packet->data, Event.packet->dataLength);
 
-                if (GetTimeUtils() - packet.timestamp >= 1.0f)
-                    packet.timestamp = GetTimeUtils();
+                if (game->GetTime() - packet.timestamp >= 1.0f)
+                    packet.timestamp = game->GetTime();
 
                 if (PacketEventActions.contains(packet.type))
                     PacketEventActions[packet.type](*this, packet, Event);
@@ -230,11 +230,11 @@ void Server::HandleTimeSync()
 {
     if (!Running)
         return;
-    if (GetTimeUtils() - LastSyncedTime >= 1)
+    if (game->GetTime() - LastSyncedTime >= 1)
     {
         for (auto [id, peer] : Players)
             PlayerTimeSync(peer);
-        LastSyncedTime = GetTimeUtils();
+        LastSyncedTime = game->GetTime();
     }
 }
 
@@ -244,7 +244,7 @@ void Server::HandlePlayerStates()
         return;
     if (Players.size() <= 1)
         return;
-    if (GetTimeUtils() - LastUpdatedPlayers < 1.0f / 50.0f)
+    if (game->GetTime() - LastUpdatedPlayers < 1.0f / 50.0f)
         return;
 
     for (auto [id, peer] : Players)
@@ -258,7 +258,7 @@ void Server::HandlePlayerStates()
         }
     }
 
-    LastUpdatedPlayers = GetTimeUtils();
+    LastUpdatedPlayers = game->GetTime();
 
     enet_host_flush(Host);
 }

@@ -10,8 +10,8 @@
 #include "Client.h"
 #include "../Utils.h"
 #include "../Packet.h"
-#include "../../game/Map.h"
-#include "../../game/Player.h"
+#include "../../game/world/Map.h"
+#include "../../game/player/Player.h"
 
 using namespace std;
 

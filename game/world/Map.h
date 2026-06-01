@@ -10,7 +10,7 @@
 #define TILE_SIZE 72
 
 #include <vector>
-#include "../game_libs.h"
+#include "../../game_libs.h"
 
 struct MarkedChunk
 {

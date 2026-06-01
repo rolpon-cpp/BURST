@@ -2,13 +2,13 @@
 // Created by lalit on 5/13/2026.
 //
 
-#include "../game/Map.h"
+#include "Map.h"
 #include <random>
 #include <iostream>
 
-#include "../network/Utils.h"
+#include "../../network/Utils.h"
 
-#include "Game.h"
+#include "../Game.h"
 
 using namespace std;
 
@@ -124,7 +124,7 @@ bool Map::ChunkIsMarked(int x, int y)
 {
     for (MarkedChunk p : MarkedChunks)
     {
-        if (p.x == x && p.y == y && GetTimeUtils() - p.timestamp <= 10)
+        if (p.x == x && p.y == y && game->GetTime() - p.timestamp <= 10)
             return true;
     }
     return false;
@@ -136,7 +136,7 @@ void Map::MarkChunk(int x, int y)
     gc->MainClient.RequestChunk(Vector2{(float)x, (float)y});
     if (ChunkIsMarked(x,y))
         return;
-    MarkedChunks.push_back(MarkedChunk{x,y,GetTimeUtils()});
+    MarkedChunks.push_back(MarkedChunk{x,y,game->GetTime()});
 }
 
 void Map::UpdateChunk(int cx, int cy)
@@ -153,8 +153,8 @@ void Map::UpdateChunk(int cx, int cy)
             if (*tile == 1)
             {
                 float sz = TILE_SIZE * 1.125f;
-                float offx = (float)cos((GetTimeUtils() + ((cx * CHUNK_SIZE) + x)) * 5.0f) * 2.0f;
-                float offy = (float)sin((GetTimeUtils() + ((cy * CHUNK_SIZE) + y)) * 5.0f) * 2.0f;
+                float offx = (float)cos((game->GetTime() + ((cx * CHUNK_SIZE) + x)) * 5.0f) * 2.0f;
+                float offy = (float)sin((game->GetTime() + ((cy * CHUNK_SIZE) + y)) * 5.0f) * 2.0f;
                 DrawRectangleRounded({
                     tileRect.x - (offx/3),
                     tileRect.y - (offy/3),
@@ -167,7 +167,7 @@ void Map::UpdateChunk(int cx, int cy)
             } else if (*tile == 2)
             {
                 Rectangle c = tileRect;
-                float theSine = sin((GetTimeUtils() + x + y) * 0.8f);
+                float theSine = sin((game->GetTime() + x + y) * 0.8f);
                 if (theSine >= 0.5f)
                 {
                     c.width *= (theSine/6.0f) + 1.0f;

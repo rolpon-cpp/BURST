@@ -4,21 +4,12 @@
 
 #ifndef BURST_WEAPON_H
 #define BURST_WEAPON_H
-#include "../game_libs.h"
+#include "../../game_libs.h"
 #include "string"
 
 enum WeaponType
 {
     NONE, PROJECTILE, MELEE,
-};
-
-struct Projectile
-{
-    Vector2 launch;
-    float damage;
-    float rotation;
-    float speed;
-    double timeShot;
 };
 
 struct WeaponState

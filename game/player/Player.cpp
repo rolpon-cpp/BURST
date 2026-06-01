@@ -2,7 +2,7 @@
 // Created by lalit on 11/27/2025.
 //
 
-#include "../game_libs.h"
+#include "../../game_libs.h"
 
 #include "Player.h"
 
@@ -12,9 +12,9 @@
 #include <ostream>
 
 #include "raymath.h"
-#include "Game.h"
-#include "../network/Utils.h"
-#include "../network/client/Client.h"
+#include "../Game.h"
+#include "../../network/Utils.h"
+#include "../../network/client/Client.h"
 
 // Returns true if the states are different
 bool CompareStates(PlayerState State1, PlayerState State2)
@@ -31,6 +31,24 @@ bool CompareStates(PlayerState State1, PlayerState State2)
         return true;
     if (abs(State1.health - State2.health) > 0)
         return true;
+    return false;
+}
+
+bool DetectIllegalStates(PlayerState BaseState, PlayerState SuspectedState)
+{
+    float Delta = SuspectedState.timestamp - BaseState.timestamp;
+
+    Vector2 ExpectedPosition = {
+        BaseState.position.x + (BaseState.velocity.x * Delta) + (BaseState.direction.x * BaseState.speed * Delta),
+        BaseState.position.y + (BaseState.velocity.y * Delta) + (BaseState.direction.y * BaseState.speed * Delta)
+    };
+
+    if (Vector2Distance(SuspectedState.position, ExpectedPosition) >= 300)
+        return true;
+
+    if (Vector2Distance({0, 0}, SuspectedState.direction) > 1.0f)
+        return true;
+
     return false;
 }
 
@@ -208,9 +226,9 @@ void Player::ProcessDashing(PlayerState* State)
             if (id == PlayerID)
                 continue;
             if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
-                                   {player.CurrentState.position.x, player.CurrentState.position.y, 36, 36}))
+                                   {player.CurrentState.position.x - 4.5f, player.CurrentState.position.y - 4.5f, 45, 45}))
             {
-                ((GameClient*)game)->MainClient.DashIntoPlayer(State->position, min(max(VelocityMagnitude / 400.0f, 0.0f), 20.0f));
+                ((GameClient*)game)->MainClient.DashIntoPlayer(State->position, min(max(VelocityMagnitude / 200.0f, 0.0f), 20.0f));
                 DashedPlayerID = player.CurrentState.id;
                 break;
             }
@@ -269,7 +287,7 @@ void Player::Update()
 {
     CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
     LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
-    if (IsLocalPlayer()) // checks if we're the local player & we are alive
+    if (IsLocalPlayer()) // checks if we're the local player
         MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, GetFrameTime());
 
     string tex = "player2";
@@ -286,5 +304,5 @@ void Player::Update()
     DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
     DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
-    DrawTexturePro(((GameClient*)game)->MainResources.Textures[tex], {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+    DrawTexturePro(((GameClient*)game)->MainResources.GetTexture(tex), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
 }

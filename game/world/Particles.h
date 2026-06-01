@@ -5,7 +5,7 @@
 #ifndef BURST_PARTICLES_H
 #define BURST_PARTICLES_H
 
-#include "../game_libs.h"
+#include "../../game_libs.h"
 
 class GameClient;
 

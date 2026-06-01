@@ -40,23 +40,23 @@ add_executable(BURST main.cpp
         game/Game.h
         game/Resources.cpp
         game/Resources.h
-        game/Camera.cpp
-        game/Camera.h
-        game/Player.cpp
-        game/Player.h
+        game/player/Camera.cpp
+        game/player/Camera.h
+        game/player/Player.cpp
+        game/player/Player.h
         network/Utils.cpp
         network/Utils.h
         network/server/ServerEventActions.h
         network/server/ServerEventActions.cpp
-        game/Map.cpp
-        game/Map.h
+        game/world/Map.cpp
+        game/world/Map.h
         game_libs.h
         game/UI.cpp
         game/UI.h
-        game/Weapon.cpp
-        game/Weapon.h
-        game/Particles.cpp
-        game/Particles.h)
+        game/player/Weapon.cpp
+        game/player/Weapon.h
+        game/world/Particles.cpp
+        game/world/Particles.h)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)
 
