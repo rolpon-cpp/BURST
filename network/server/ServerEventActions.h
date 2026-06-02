@@ -12,6 +12,7 @@ struct Packet;
 
 void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
+void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 
 #endif //BURST_SERVEREVENTACTIONS_H

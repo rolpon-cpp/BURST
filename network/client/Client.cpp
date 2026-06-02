@@ -125,6 +125,9 @@ void Client::Disconnect()
 
 void Client::Reset()
 {
+    for (auto &[id,plr] : Players)
+        plr.Destroy();
+    Players.clear();
     if (Host != nullptr)
         delete Host;
     if (Peer != nullptr)
@@ -143,7 +146,6 @@ void Client::Reset()
     LastUpdatedState = 0;
     Ping = 0;
     OurPlayerID = -1;
-    OtherPlayers.clear();
     Connected = false;
 }
 
@@ -204,7 +206,7 @@ void Client::Update()
 
 std::unordered_map<int32_t, Player>& Client::GetPlayers()
 {
-    return OtherPlayers;
+    return Players;
 }
 
 double Client::GetServerTime()
@@ -238,6 +240,22 @@ void Client::DashIntoPlayer(Vector2 ImpactPoint, float Damage)
         PlayerDash playerDash{ImpactPoint, Damage};
 
         memcpy(&myPacket.data, &playerDash, sizeof(PlayerDash));
+
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(Peer, 0, packet);
+        enet_host_flush(Host);
+    }
+}
+
+void Client::AttackWithWeapon(WeaponAttack Attack)
+{
+    if (Host != nullptr && Peer != nullptr)
+    {
+        Packet myPacket = {};
+        myPacket.timestamp = GetServerTime();
+        myPacket.type = PLAYER_WEAPON_ATTACK;
+
+        memcpy(&myPacket.data, &Attack, sizeof(Attack));
 
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Peer, 0, packet);

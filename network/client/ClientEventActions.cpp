@@ -37,16 +37,16 @@ void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
         WeaponState{},
         Packet.timestamp
     };
-    OurClient.OtherPlayers[player_join.id] = Player(s, OurClient.game);
-    OurClient.OtherPlayers[player_join.id].PlayerID = player_join.id;
+    OurClient.Players[player_join.id] = Player(s, OurClient.game);
+    OurClient.Players[player_join.id].PlayerID = player_join.id;
 }
 
 void PlayerLeftAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
     PlayerLeft player_left;
     memcpy(&player_left, &Packet.data, sizeof(PlayerLeft));
-    if (OurClient.OtherPlayers.contains(player_left.id))
-        OurClient.OtherPlayers.erase(player_left.id);
+    if (OurClient.Players.contains(player_left.id))
+        OurClient.Players.erase(player_left.id);
 }
 
 void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
@@ -56,21 +56,21 @@ void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     PlayerState NewState;
     memcpy(&NewState, &Packet.data, sizeof(PlayerState));
     PlayerState OldState;
-    if (OurClient.OtherPlayers.contains(NewState.id))
+    if (OurClient.Players.contains(NewState.id))
     {
-        OldState = OurClient.OtherPlayers.at(NewState.id).CurrentState;
+        OldState = OurClient.Players.at(NewState.id).CurrentState;
 
-        OurClient.OtherPlayers[NewState.id].CurrentState = NewState;
-        OurClient.OtherPlayers[NewState.id].LastState = OldState;
+        OurClient.Players[NewState.id].CurrentState = NewState;
+        OurClient.Players[NewState.id].LastState = OldState;
 
-        OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.push_back(NewState);
-        OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.erase(
+        OurClient.Players[NewState.id].PreviousPlayerStates.push_back(NewState);
+        OurClient.Players[NewState.id].PreviousPlayerStates.erase(
             std::remove_if(
-                OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.begin(),
-                OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.end(),
+                OurClient.Players[NewState.id].PreviousPlayerStates.begin(),
+                OurClient.Players[NewState.id].PreviousPlayerStates.end(),
                 [ServerTime](PlayerState& p) { return ServerTime - p.timestamp >= 4.0f; }
             ),
-            OurClient.OtherPlayers[NewState.id].PreviousPlayerStates.end()
+            OurClient.Players[NewState.id].PreviousPlayerStates.end()
         );
     }
 }

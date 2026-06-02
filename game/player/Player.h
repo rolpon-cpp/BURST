@@ -72,6 +72,9 @@ class Player {
 public:
     Game *game;
     int32_t PlayerID = -1;
+
+    Inventory inventory;
+
     PlayerState CurrentState = { 0 };
     PlayerState LastState = { 0 };
     PlayerState LocalState = { 0 };
@@ -101,6 +104,8 @@ public:
     Vector2 ProcessInputs();
     void MovePlayer(Vector2 Direction, float Delta, bool UseLocalState = false);
     bool IsLocalPlayer();
+
+    void Destroy();
 };
 
 

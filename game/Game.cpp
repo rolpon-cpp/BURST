@@ -9,6 +9,8 @@
 Game::Game()
 {
     MainMap = Map(this);
+    DeltaTime = 0.0f;
+    LastTime = this->GetTime();
 }
 
 Game::~Game()
@@ -22,6 +24,11 @@ double Game::GetTime()
     return static_cast<GameClient*>(this)->MainClient.GetServerTime();
 }
 
+double Game::GetDeltaTime()
+{
+    return DeltaTime;
+}
+
 void Game::Start(string IPAddress, int Port)
 {
 }
@@ -33,6 +40,8 @@ void Game::Stop()
 
 void Game::Update()
 {
+    DeltaTime = this->GetTime() - LastTime;
+    LastTime = this->GetTime();
 }
 
 void Game::Quit()
@@ -126,9 +135,16 @@ void GameServer::Update()
 {
     Game::Update();
     MainServer.UpdateServer();
+
+    for (auto &[id, peer] : MainServer.Players)
+    {
+        Player* plr = (Player*)peer->data;
+        plr->Update();
+    }
 }
 
 void GameServer::Quit()
 {
+    Stop();
     Game::Quit();
 }

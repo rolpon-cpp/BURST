@@ -26,7 +26,7 @@ public:
 
     ENetHost* Host = nullptr;
     ENetPeer* Peer = nullptr;
-    unordered_map<int32_t, Player> OtherPlayers;
+    unordered_map<int32_t, Player> Players;
     unordered_map<PacketType, void(*)(Client& OurClient, Packet& Packet, ENetEvent& Event)> EventActions;
 
     double ServerTimeOffset;
@@ -46,6 +46,7 @@ public:
     std::unordered_map<int32_t, Player>& GetPlayers();
     void UpdateState(PlayerState& State);
     void RequestChunk(Vector2 Position);
+    void AttackWithWeapon(WeaponAttack Attack);
     void DashIntoPlayer(Vector2 ImpactPoint, float Damage);
     double GetServerTime();
 };

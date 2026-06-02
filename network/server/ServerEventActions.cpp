@@ -17,12 +17,18 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
     auto* PlayerToUpdate = static_cast<Player*>(Event.peer->data);
 
+    PlayerState PreviousPlayerState = PlayerToUpdate->CurrentState;
+
     memcpy(&PlayerToUpdate->CurrentState, &Packet.data, sizeof(PlayerState));
     
     // Ownership modifications
-    PlayerToUpdate->CurrentState.health = PlayerToUpdate->LastState.health;
+    PlayerToUpdate->CurrentState.health = PreviousPlayerState.health;
     PlayerToUpdate->CurrentState.id = PlayerToUpdate->PlayerID;
+    PreviousPlayerState.id = PlayerToUpdate->PlayerID;
     PlayerToUpdate->LastState.id = PlayerToUpdate->PlayerID;
+
+    // Weapon equip
+    PlayerToUpdate->inventory.EquipItem(PlayerToUpdate->CurrentState.weapon_state.inventoryIdx);
 
     // Timestamp anticheat check
     if (abs(PlayerToUpdate->CurrentState.timestamp - OurServer.game->GetTime()) >= 1.0f)
@@ -30,12 +36,12 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
     // Health anticheat check
     if (PlayerToUpdate->CurrentState.health <= 0.0f)
-        PlayerToUpdate->CurrentState.position = PlayerToUpdate->LastState.position;
+        PlayerToUpdate->CurrentState.position = PreviousPlayerState.position;
 
     // Illegal state anticheat check
-    if (DetectIllegalStates(PlayerToUpdate->LastState, PlayerToUpdate->CurrentState))
+    if (DetectIllegalStates(PreviousPlayerState, PlayerToUpdate->CurrentState))
     {
-        PlayerToUpdate->CurrentState = PlayerToUpdate->LastState;
+        PlayerToUpdate->CurrentState = PreviousPlayerState;
 
         struct Packet myPacket = {};
         myPacket.type = PLAYER_CHAR_RESET;
@@ -126,4 +132,21 @@ void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
         if (CheckCollisionRecs({dash.impact.x, dash.impact.y, 36, 36}, {VictimPlayerState.position.x, VictimPlayerState.position.y, 36, 36}))
             VictimPlayer->CurrentState.health -= dash.damage;
     }
+}
+
+void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+{
+    Player* AttackingPlayer = (Player*)Event.peer->data;
+    WeaponAttack attackInfo;
+    memcpy(&attackInfo, &Packet.data, sizeof(WeaponAttack));
+
+    if (Vector2Distance(attackInfo.origin, AttackingPlayer->CurrentState.position) >= 100.0f)
+        attackInfo.origin = AttackingPlayer->CurrentState.position;
+
+    if (abs(GetTimeUtils() - attackInfo.timestamp) >= 1.0f)
+        attackInfo.timestamp = GetTimeUtils();
+
+    attackInfo.inventoryIdx = max(min(attackInfo.inventoryIdx, 2), 0);
+
+    AttackingPlayer->inventory.Attack(attackInfo);
 }

@@ -50,7 +50,7 @@ void BurstCamera::Update()
     if (game->MainClient.Connected)
     {
         this->RaylibCamera.target = Vector2Lerp(this->RaylibCamera.target,
-            game->MainPlayer.GetCenter(), 6.5f * GetFrameTime());
+            game->MainPlayer.GetCenter(), 6.5f * game->GetDeltaTime());
     }
 }
 

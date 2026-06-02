@@ -6,15 +6,20 @@
 #define ALLS_PACKET_H
 
 enum PacketType {
-    PLAYER_UPDATE,
+    PLAYER_WEAPON_ATTACK,
     PLAYER_DASH,
+
+    PLAYER_UPDATE,
     PLAYER_CHAR_RESET,
     PLAYER_HEALTH_UPDATE,
+
     PLAYER_JOIN,
     PLAYER_LEFT,
     NEW_PLAYER,
+
     TIME_SYNC,
     GET_CHUNK,
+
 };
 
 #pragma pack(push, 1)

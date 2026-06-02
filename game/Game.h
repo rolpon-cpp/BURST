@@ -16,12 +16,15 @@ class Game
 public:
     bool IsClient;
     Map MainMap;
+    double LastTime;
+    double DeltaTime;
 
     Game();
     ~Game();
 
     void Start(string IPAddress = "127.0.0.1", int Port = 5000);
     double GetTime();
+    double GetDeltaTime();
     void Stop();
     void Update();
     void Quit();

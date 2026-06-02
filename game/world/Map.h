@@ -65,13 +65,15 @@ public:
     char* GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y);
     void SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y);
 
-    char* GetTileInChunk(int worldX, int worldY);
-    void SetTileInChunk(char TileToSet, int worldX, int worldY);
+    char* GetTile(int worldX, int worldY);
+    void SetTile(char TileToSet, int worldX, int worldY);
 
     bool ChunkIsMarked(int x, int y);
     void MarkChunk(int x, int y);
 
     bool CollisionCheck(Rectangle rectangle);
+    RayCastResult CastRay(Vector2 Origin, float Angle, float Range = 1000.0f);
+    RayCastResult CastRay(Vector2 Origin, Vector2 Target, float Range = 0.0f);
     Rectangle GetTileRect(int cx, int cy, int x, int y);
     Rectangle GetTileRect(int worldX, int worldY);
 };

@@ -38,7 +38,7 @@ void UI::Update()
     ClearBackground(BLANK);
 
     DrawText((to_string(static_cast<int>(round(game->MainClient.Ping * 1000.0f))) + "ms ping").c_str(), 15, 15, 20, BLACK);
-    DrawText((to_string((int)round(GetFrameTime() * 1000.0f)) + "ms frame time").c_str(), 15, 35, 20, BLACK);
+    DrawText((to_string((int)round(game->GetDeltaTime() * 1000.0f)) + "ms frame time").c_str(), 15, 35, 20, BLACK);
 
     float W = 250;
     float H = 56;

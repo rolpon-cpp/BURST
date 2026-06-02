@@ -32,6 +32,8 @@ void Server::Reset()
 {
     if (Host != nullptr)
         delete Host;
+    for (auto &[id,peer] : Players)
+        ((Player*)peer->data)->Destroy();
     Players.clear();
     Host = nullptr;
     Running = false;
@@ -42,6 +44,7 @@ void Server::Reset()
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
     PacketEventActions[PLAYER_DASH] = &PlayerDashAction;
     PacketEventActions[GET_CHUNK] = &GetChunkAction;
+    PacketEventActions[PLAYER_WEAPON_ATTACK] = &PlayerWeaponAttackAction;
 }
 
 void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
@@ -177,6 +180,7 @@ void Server::PlayerDisconnect(ENetEvent& Event)
             PlayerLeftNotification(Event.peer, peer);
     }
     Players.erase(OldPlayer->PlayerID);
+    OldPlayer->Destroy();
     delete OldPlayer;
 }
 

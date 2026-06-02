@@ -12,4 +12,17 @@
 
 #include "raylib.h"
 
+struct Vector2i
+{
+    int x;
+    int y;
+};
+
+struct RayCastResult
+{
+    char* hitTile = nullptr;
+    Vector2i hitPositionTileSpace;
+    Vector2 hitPositionWorldSpace;
+};
+
 #endif //BURST_SAFE_ENET_H

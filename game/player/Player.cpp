@@ -55,6 +55,7 @@ bool DetectIllegalStates(PlayerState BaseState, PlayerState SuspectedState)
 Player::Player()
 {
     this->game = nullptr;
+    this->inventory = Inventory(game, this);
     LastDashed = 0.0f;
     DisplayHealth = 0.0f;
 }
@@ -62,6 +63,7 @@ Player::Player()
 Player::Player(float X, float Y, float Speed, Game* game)
 {
     this->game = game;
+    this->inventory = Inventory(game, this);
     PlayerID = -1;
     CurrentState.position = {X, Y};
     CurrentState.health = 100.0f;
@@ -71,21 +73,33 @@ Player::Player(float X, float Y, float Speed, Game* game)
     LastDashed = 0;
     LastState = CurrentState;
     LocalState = CurrentState;
+
+    inventory.GiveItem(make_shared<ProjectileWeapon>(
+            &inventory,
+            "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
+            ));
 }
 
 Player::Player(PlayerState State, Game* game)
 {
     this->game = game;
+    this->inventory = Inventory(game, this);
     PlayerID = -1;
     CurrentState = State;
     LastState = CurrentState;
     LocalState = CurrentState;
     DisplayHealth = CurrentState.health;
     LastDashed = 0;
+
+    inventory.GiveItem(make_shared<ProjectileWeapon>(
+            &inventory,
+            "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
+            ));
 }
 
 Player::~Player()
 {
+
 }
 
 bool Player::IsLocalPlayer()
@@ -167,7 +181,7 @@ void Player::SmoothPlayerState(double Delay)
     PlayerState PredictedState = GetPlayerState(((GameClient*)game)->MainClient.GetServerTime() - Delay);
     Vector2 PrevPos = LocalState.position;
     LocalState = PredictedState;
-    LocalState.position = Vector2Lerp(PrevPos, LocalState.position, GetFrameTime() * 24.0f);
+    LocalState.position = Vector2Lerp(PrevPos, LocalState.position, game->GetDeltaTime() * 24.0f);
 }
 
 Vector2 Player::ProcessInputs()
@@ -221,7 +235,7 @@ void Player::ProcessDashing(PlayerState* State)
 
     if (IsDashing)
     {
-        for (auto &[id, player] : ((GameClient*)game)->MainClient.OtherPlayers)
+        for (auto &[id, player] : ((GameClient*)game)->MainClient.Players)
         {
             if (id == PlayerID)
                 continue;
@@ -285,24 +299,32 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
 
 void Player::Update()
 {
+    inventory.Update();
     CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
     LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
     if (IsLocalPlayer()) // checks if we're the local player
-        MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, GetFrameTime());
+        MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, game->GetDeltaTime());
 
-    string tex = "player2";
-    if (IsLocalPlayer())
-        tex = "player1";
-    string playerName = "Player " + to_string(PlayerID);
-    if (IsLocalPlayer())
-        playerName = "You";
-    int sz = MeasureText(playerName.c_str(), 20);
+    if (game->IsClient)
+    {
+        string tex = "player2";
+        if (IsLocalPlayer())
+            tex = "player1";
+        string playerName = "Player " + to_string(PlayerID);
+        if (IsLocalPlayer())
+            playerName = "You";
+        int sz = MeasureText(playerName.c_str(), 20);
 
-    DisplayHealth = Lerp(DisplayHealth, CurrentState.health, 5.0f * GetFrameTime());
-    float healthSZ =max(min((float)DisplayHealth, 100.0f), 0.0f);
-    DrawRectangleRounded({LocalState.position.x - 32, LocalState.position.y - 17.5f, 100, 12.5f}, 0.35f, 2, RED);
-    DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
+        DisplayHealth = Lerp(DisplayHealth, CurrentState.health, 5.0f * game->GetDeltaTime());
+        float healthSZ =max(min((float)DisplayHealth, 100.0f), 0.0f);
+        DrawRectangleRounded({LocalState.position.x - 32, LocalState.position.y - 17.5f, 100, 12.5f}, 0.35f, 2, RED);
+        DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
-    DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
-    DrawTexturePro(((GameClient*)game)->MainResources.GetTexture(tex), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+        DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
+        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture(tex), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+    }
+}
+
+void Player::Destroy()
+{
 }

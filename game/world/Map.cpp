@@ -79,7 +79,7 @@ void Map::GenerateMap(int Seed)
                 int fY = y + g * (distb(gen) == 1 ? 1 : -1);
                 Vector2 Tile = {(float) fX + 0.5f, (float) fY + 0.5f};
                 if (Vector2Distance(WorldCenter, Tile) >= 4)
-                    SetTileInChunk(1, fX, fY);
+                    SetTile(1, fX, fY);
             }
         }
     }
@@ -228,7 +228,7 @@ bool Map::CollisionCheck(Rectangle rectangle)
             int worldX = (rectangle.x / TILE_SIZE) + x;
             int worldY = (rectangle.y / TILE_SIZE) + y;
 
-            char* tile = GetTileInChunk(worldX, worldY);
+            char* tile = GetTile(worldX, worldY);
             if (tile == nullptr || *tile != 1)
                 continue;
 
@@ -243,7 +243,99 @@ bool Map::CollisionCheck(Rectangle rectangle)
     return false;
 }
 
-char* Map::GetTileInChunk(int worldX, int worldY)
+RayCastResult Map::CastRay(Vector2 Origin, float Angle, float Range)
+{
+    float cX = -cos(Angle * (2 * PI / 360)) * Range;
+    float cY = -sin(Angle * (2 * PI / 360)) * Range;
+    Vector2 Target = Origin + Vector2(cX, cY);
+    return CastRay(Origin, Target, Range);
+}
+
+RayCastResult Map::CastRay(Vector2 Origin, Vector2 Target, float Range)
+{
+    Vector2 vRayStart = Vector2{Origin.x / TILE_SIZE, Origin.y / TILE_SIZE};
+    Vector2 vRayTarget = Vector2{Target.x / TILE_SIZE, Target.y / TILE_SIZE};
+    Vector2 vRayDir = Vector2Normalize(vRayTarget - vRayStart);
+
+    Vector2 vRayUnitStepSize = { sqrt(1 + (vRayDir.y / vRayDir.x) * (vRayDir.y / vRayDir.x)), sqrt(1 + (vRayDir.x / vRayDir.y) * (vRayDir.x / vRayDir.y)) };
+    Vector2i vMapCheck = {(int)vRayStart.x, (int)vRayStart.y};
+    Vector2 vRayLength1D = {0, 0};
+    Vector2i vStep = {0, 0};
+
+    if (vRayDir.x < 0)
+    {
+        vStep.x = -1;
+        vRayLength1D.x = (vRayStart.x - float(vMapCheck.x)) * vRayUnitStepSize.x;
+    }
+    else
+    {
+        vStep.x = 1;
+        vRayLength1D.x = (float(vMapCheck.x + 1) - vRayStart.x) * vRayUnitStepSize.x;
+    }
+
+    if (vRayDir.y < 0)
+    {
+        vStep.y = -1;
+        vRayLength1D.y = (vRayStart.y - float(vMapCheck.y)) * vRayUnitStepSize.y;
+    }
+    else
+    {
+        vStep.y = 1;
+        vRayLength1D.y = (float(vMapCheck.y + 1) - vRayStart.y) * vRayUnitStepSize.y;
+    }
+
+    if (Range <= 0.0f)
+        Range = Vector2Distance(vRayStart, vRayTarget);
+
+    char* tile = nullptr;
+
+    // Perform "Walk" until collision or range check
+    bool bTileFound = false;
+    float fMaxDistance = Range;
+    float fDistance = 0.0f;
+    while (!bTileFound && fDistance < fMaxDistance)
+    {
+
+        // Walk along shortest path
+        if (vRayLength1D.x < vRayLength1D.y)
+        {
+            vMapCheck.x += vStep.x;
+            fDistance = vRayLength1D.x;
+            vRayLength1D.x += vRayUnitStepSize.x;
+        }
+        else
+        {
+            vMapCheck.y += vStep.y;
+            fDistance = vRayLength1D.y;
+            vRayLength1D.y += vRayUnitStepSize.y;
+        }
+
+        if (fDistance >= fMaxDistance)
+        {
+            fDistance = fMaxDistance;
+            break;
+        }
+
+        // Test tile at new test point
+        if (vMapCheck.x >= 0 && vMapCheck.x < (CHUNK_SIZE * WORLD_CHUNK_SIZE) && vMapCheck.y >= 0 && vMapCheck.y < (CHUNK_SIZE * WORLD_CHUNK_SIZE))
+        {
+            char* tileAtMapCheck = GetTile(vMapCheck.x, vMapCheck.y);
+            if (tileAtMapCheck != nullptr && *tileAtMapCheck != 0)
+            {
+                bTileFound = true;
+                tile = tileAtMapCheck;
+                break;
+            }
+        }
+    }
+
+    // Calculate intersection location
+    Vector2 vIntersection = Origin - Vector2Normalize(Origin - Target) * fDistance * TILE_SIZE;
+
+    return {tile, vMapCheck, vIntersection};
+}
+
+char* Map::GetTile(int worldX, int worldY)
 {
     int x = worldX % CHUNK_SIZE;
     int cx = (worldX - x) / CHUNK_SIZE;
@@ -256,7 +348,7 @@ char* Map::GetTileInChunk(int worldX, int worldY)
     return GetTileInChunk(chunk, x, y);
 }
 
-void Map::SetTileInChunk(char TileToSet, int worldX, int worldY)
+void Map::SetTile(char TileToSet, int worldX, int worldY)
 {
     int x = worldX % CHUNK_SIZE;
     int cx = (worldX - x) / CHUNK_SIZE;
