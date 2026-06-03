@@ -327,4 +327,5 @@ void Player::Update()
 
 void Player::Destroy()
 {
+    inventory.Destroy();
 }

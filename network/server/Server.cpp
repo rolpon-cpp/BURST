@@ -30,16 +30,22 @@ Server::~Server()
 
 void Server::Reset()
 {
-    if (Host != nullptr)
-        delete Host;
     for (auto &[id,peer] : Players)
+    {
         ((Player*)peer->data)->Destroy();
+        delete (Player*)peer->data;
+    }
     Players.clear();
+
+    if (Host != nullptr)
+        enet_host_destroy(Host);
     Host = nullptr;
+
     Running = false;
     LastSyncedTime = 0.0f;
     LastUpdatedPlayers = 0.0f;
     LatestPlayerID = -1;
+
     PacketEventActions.clear();
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
     PacketEventActions[PLAYER_DASH] = &PlayerDashAction;

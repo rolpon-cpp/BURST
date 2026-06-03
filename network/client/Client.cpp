@@ -128,10 +128,13 @@ void Client::Reset()
     for (auto &[id,plr] : Players)
         plr.Destroy();
     Players.clear();
+
     if (Host != nullptr)
-        delete Host;
-    if (Peer != nullptr)
-        delete Peer;
+    {
+        enet_host_destroy(Host);
+        Host = nullptr;
+        Peer = nullptr;
+    }
     EventActions.clear();
     EventActions[TIME_SYNC] = &TimeSyncAction;
     EventActions[PLAYER_JOIN] = &PlayerJoinAction;
@@ -183,7 +186,7 @@ void Client::Update()
                 if (Event.packet->dataLength != sizeof(Packet))
                 {
                     enet_packet_destroy(Event.packet);
-                    return;
+                    continue;
                 }
 
                 Packet packet;

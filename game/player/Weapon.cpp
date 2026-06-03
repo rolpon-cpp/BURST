@@ -237,17 +237,16 @@ void Inventory::Update()
         Weapons[EquippedItemIdx]->Update();
     }
 
-    /*
     if (Owner != nullptr)
     {
         Owner->CurrentState.weapon_state = {
-            (EquippedItemIdx < 0 || EquippedItemIdx >= Weapons.size() || Weapons[EquippedItemIdx] == nullptr) ? NONE : Weapons[EquippedItemIdx]->Type,
-                        (EquippedItemIdx < 0 || EquippedItemIdx >= Weapons.size() || Weapons[EquippedItemIdx] == nullptr) ? "" : Weapons[EquippedItemIdx]->Texture,
+            (EquippedItemIdx < 0 || EquippedItemIdx >= INVENTORY_SIZE || Weapons[EquippedItemIdx] == nullptr) ? NONE : Weapons[EquippedItemIdx]->Type,
+                        (EquippedItemIdx < 0 || EquippedItemIdx >= INVENTORY_SIZE || Weapons[EquippedItemIdx] == nullptr) ? "" : Weapons[EquippedItemIdx]->Texture,
                         EquippedItemIdx,
                         false
         };
     }
-    */
+
 }
 
 void Inventory::Destroy()

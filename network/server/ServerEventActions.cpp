@@ -66,7 +66,7 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
             std::remove_if(
                 PlayerToUpdate->PreviousPlayerStates.begin(),
                 PlayerToUpdate->PreviousPlayerStates.end(),
-                [OurServer](PlayerState& p) { return OurServer.game->GetTime() - p.timestamp >= 4.0f; }
+                [&OurServer](PlayerState& p) { return OurServer.game->GetTime() - p.timestamp >= 4.0f; }
             ),
             PlayerToUpdate->PreviousPlayerStates.end()
         );
