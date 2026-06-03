@@ -52,18 +52,11 @@ bool DetectIllegalStates(PlayerState BaseState, PlayerState SuspectedState)
     return false;
 }
 
-Player::Player()
+Player::Player(float X, float Y, float Speed, Game* game) : inventory(game, this)
 {
-    this->game = nullptr;
-    this->inventory = Inventory(game, this);
-    LastDashed = 0.0f;
-    DisplayHealth = 0.0f;
-}
-
-Player::Player(float X, float Y, float Speed, Game* game)
-{
+    printf("creating player ?? (properties)\n");
+    std::cout << std::flush;
     this->game = game;
-    this->inventory = Inventory(game, this);
     PlayerID = -1;
     CurrentState.position = {X, Y};
     CurrentState.health = 100.0f;
@@ -80,11 +73,12 @@ Player::Player(float X, float Y, float Speed, Game* game)
             ));
 }
 
-Player::Player(PlayerState State, Game* game)
+Player::Player(PlayerState State, Game* game) : inventory(game, this)
 {
+    printf("creating player (state)%i\n", State.id);
+    std::cout << std::flush;
     this->game = game;
-    this->inventory = Inventory(game, this);
-    PlayerID = -1;
+    PlayerID = State.id;
     CurrentState = State;
     LastState = CurrentState;
     LocalState = CurrentState;
@@ -95,6 +89,10 @@ Player::Player(PlayerState State, Game* game)
             &inventory,
             "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
             ));
+}
+
+Player::Player()
+{
 }
 
 Player::~Player()
@@ -299,14 +297,22 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
 
 void Player::Update()
 {
+    printf("processing player! %i\n",PlayerID);
+
+    printf("inventory process 1\n");
     inventory.Update();
+
+    printf("health limit process 2\n");
     CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
     LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
+
+    printf("player movement process 3\n");
     if (IsLocalPlayer()) // checks if we're the local player
         MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, game->GetDeltaTime());
 
     if (game->IsClient)
     {
+        printf("rendering process 4\n");
         string tex = "player2";
         if (IsLocalPlayer())
             tex = "player1";
@@ -323,9 +329,12 @@ void Player::Update()
         DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
         DrawTexturePro(((GameClient*)game)->MainResources.GetTexture(tex), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
     }
+
+    std::cout << "DONE PROCESSING PLAYER!" << "\n" << std::flush;
 }
 
 void Player::Destroy()
 {
+    printf("destroying player %i\n", PlayerID);
     inventory.Destroy();
 }

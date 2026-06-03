@@ -53,9 +53,8 @@ GameClient::GameClient() : Game()
 {
     IsClient = true;
 
-    MainPlayer = Player(0, 0, 350.0f, this);
     MainCamera = BurstCamera(this);
-
+    MainPlayer = Player(0, 0, 350.0f, this);
     MainClient = Client(this);
     MainResources = Resources(this);
 
@@ -67,6 +66,7 @@ GameClient::GameClient() : Game()
 void GameClient::Start(string IPAddress, int Port)
 {
     Game::Start(IPAddress, Port);
+    MainPlayer.Destroy();
     MainPlayer = Player((WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2 - 18.0f, (WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2 - 18.0f, 350.0f, this);
     MainClient.Connect(IPAddress, Port);
 }
@@ -109,13 +109,13 @@ void GameClient::Quit()
     MainUI.Stop();
     Stop();
     MainResources.Unload();
+    MainPlayer.Destroy();
 }
 
 GameServer::GameServer() : Game()
 {
     IsClient = false;
     MainServer = Server(this);
-
 }
 
 void GameServer::Start(string IPAddress, int Port)

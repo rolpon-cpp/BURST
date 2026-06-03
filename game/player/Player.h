@@ -46,7 +46,7 @@ struct PlayerState {
     float rotation = 0;
     float health = 0;
     float speed = 0;
-    WeaponState weapon_state = {NONE, ""};
+    WeaponState weapon_state = WeaponState{};
     double timestamp = 0;
 };
 #pragma pack(pop)
@@ -86,9 +86,9 @@ public:
 
     double DisplayHealth;
 
+    Player();
     Player(float X, float Y, float Speed, Game* game);
     Player(PlayerState State, Game* game);
-    Player();
     ~Player();
 
     void Update();

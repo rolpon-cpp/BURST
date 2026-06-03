@@ -115,6 +115,8 @@ void ProjectileWeapon::Update()
 
 Inventory::Inventory(Game* game, Player* owner)
 {
+    printf("THERE'S A BLUE MOON OUT TONIGHT\n");
+    std::cout << std::flush;
     this->game = game;
     this->Owner = owner;
     this->Weapons[0] = nullptr;
@@ -125,12 +127,8 @@ Inventory::Inventory(Game* game, Player* owner)
 
 Inventory::Inventory()
 {
-    this->game = nullptr;
-    this->Owner = nullptr;
-    this->Weapons[0] = nullptr;
-    this->Weapons[1] = nullptr;
-    this->Weapons[2] = nullptr;
-    this->EquippedItemIdx = -1;
+    printf("THERE'S A YELLOW STAR OUT TONIGHT\n");
+    std::cout << std::flush;
 }
 
 Inventory::~Inventory()
@@ -222,6 +220,9 @@ void Inventory::Attack(WeaponAttack attackInfo)
 
 void Inventory::Update()
 {
+    printf("processing weapons\n");
+
+    printf("client/keys detection process 1\n");
     if (game != nullptr && game->IsClient)
     {
         if (IsKeyPressed(KEY_ONE))
@@ -232,25 +233,46 @@ void Inventory::Update()
             EquipItem(2);
     }
 
-    if (EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE)
+    printf("weapons update process 2\n");
+    if (EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE && Weapons[EquippedItemIdx] != nullptr)
     {
         Weapons[EquippedItemIdx]->Update();
     }
 
-    if (Owner != nullptr)
+    printf("owner state mod process 3\n");
+    std::cout << EquippedItemIdx << "\n" << std::flush;
+    if (Owner != nullptr && EquippedItemIdx != -1 && Weapons[EquippedItemIdx] != nullptr && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE)
     {
+        printf("setting state, owner id %i\n", Owner->PlayerID);
+        std::cout << std::flush;
         Owner->CurrentState.weapon_state = {
-            (EquippedItemIdx < 0 || EquippedItemIdx >= INVENTORY_SIZE || Weapons[EquippedItemIdx] == nullptr) ? NONE : Weapons[EquippedItemIdx]->Type,
-                        (EquippedItemIdx < 0 || EquippedItemIdx >= INVENTORY_SIZE || Weapons[EquippedItemIdx] == nullptr) ? "" : Weapons[EquippedItemIdx]->Texture,
-                        EquippedItemIdx,
-                        false
+            Weapons[EquippedItemIdx]->Type,
+            Weapons[EquippedItemIdx]->Texture,
+            EquippedItemIdx,
+            false
+        };
+    } else if (Owner != nullptr)
+    {
+        printf("setting state, owner id %i\n", Owner->PlayerID);
+        std::cout << std::flush;
+
+        Owner->CurrentState.weapon_state = {
+            NONE,
+            "",
+            -1,
+            false
         };
     }
+    std::cout << "DONE PROCESSING WEAPONS!" << "\n" << std::flush;
 
 }
 
 void Inventory::Destroy()
 {
+    printf("destroying weapons\n");
     for (int i = 0; i < INVENTORY_SIZE; i++)
-        Weapons[i].reset();
+    {
+        if (Weapons[i] != nullptr)
+            Weapons[i].reset();
+    }
 }
