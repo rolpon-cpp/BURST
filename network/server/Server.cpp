@@ -69,7 +69,7 @@ void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
 
     if (Host == NULL)
     {
-        std::cout << "Error creating server host.\n";
+        //std::cout << "Error creating server host.\n";
         return;
     }
     enet_host_bandwidth_limit(Host, 0, 0);

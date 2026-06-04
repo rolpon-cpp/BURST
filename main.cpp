@@ -63,6 +63,8 @@ void server() {
 }
 
 int main(int argc, char** argv) {
+    if (argc != 2)
+        return 0;
     enet_initialize();
     std::string arg = argv[1];
     if (arg== "server") {

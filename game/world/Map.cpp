@@ -29,7 +29,7 @@ Map::Map(Game* game)
 
 void Map::GenerateMap(int Seed)
 {
-    printf("Generating map...\n");
+    //printf("Generating map...\n");
     ClearMap();
     std::mt19937 gen(Seed);
     std::uniform_int_distribution distr(25, 50);
@@ -83,7 +83,7 @@ void Map::GenerateMap(int Seed)
             }
         }
     }
-    printf("Map successfully generated!\n");
+    //printf("Map successfully generated!\n");
 }
 
 Chunk* Map::GetChunk(int x, int y)
@@ -286,6 +286,8 @@ RayCastResult Map::CastRay(Vector2 Origin, Vector2 Target, float Range)
 
     if (Range <= 0.0f)
         Range = Vector2Distance(vRayStart, vRayTarget);
+    else
+        Range /= TILE_SIZE;
 
     char* tile = nullptr;
 
@@ -319,6 +321,7 @@ RayCastResult Map::CastRay(Vector2 Origin, Vector2 Target, float Range)
         // Test tile at new test point
         if (vMapCheck.x >= 0 && vMapCheck.x < (CHUNK_SIZE * WORLD_CHUNK_SIZE) && vMapCheck.y >= 0 && vMapCheck.y < (CHUNK_SIZE * WORLD_CHUNK_SIZE))
         {
+            cout << vMapCheck.x << " " << vMapCheck.y << endl;
             char* tileAtMapCheck = GetTile(vMapCheck.x, vMapCheck.y);
             if (tileAtMapCheck != nullptr && *tileAtMapCheck != 0)
             {

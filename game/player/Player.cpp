@@ -52,10 +52,10 @@ bool DetectIllegalStates(PlayerState BaseState, PlayerState SuspectedState)
     return false;
 }
 
-Player::Player(float X, float Y, float Speed, Game* game) : inventory(game, this)
+Player::Player(float X, float Y, float Speed, Game* game)
 {
-    printf("creating player ?? (properties)\n");
-    std::cout << std::flush;
+    //printf("creating player ?? (properties)\n");
+    ////std::cout << std::flush;
     this->game = game;
     PlayerID = -1;
     CurrentState.position = {X, Y};
@@ -67,16 +67,17 @@ Player::Player(float X, float Y, float Speed, Game* game) : inventory(game, this
     LastState = CurrentState;
     LocalState = CurrentState;
 
+    inventory = Inventory(game, this);
     inventory.GiveItem(make_shared<ProjectileWeapon>(
             &inventory,
             "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
             ));
 }
 
-Player::Player(PlayerState State, Game* game) : inventory(game, this)
+Player::Player(PlayerState State, Game* game)
 {
-    printf("creating player (state)%i\n", State.id);
-    std::cout << std::flush;
+    //printf("creating player (state)%i\n", State.id);
+    //std::cout << std::flush;
     this->game = game;
     PlayerID = State.id;
     CurrentState = State;
@@ -85,6 +86,7 @@ Player::Player(PlayerState State, Game* game) : inventory(game, this)
     DisplayHealth = CurrentState.health;
     LastDashed = 0;
 
+    inventory = Inventory(game, this);
     inventory.GiveItem(make_shared<ProjectileWeapon>(
             &inventory,
             "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
@@ -297,22 +299,31 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
 
 void Player::Update()
 {
-    printf("processing player! %i\n",PlayerID);
+    inventory.Owner = this;
+    inventory.game = game;
+    //printf("processing player! %i\n",PlayerID);
+    //cout << this << "\n" << std::flush;
 
-    printf("inventory process 1\n");
+    //printf("inventory process 1\n");
     inventory.Update();
 
-    printf("health limit process 2\n");
+    //printf("health limit process 2\n");
     CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
     LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
 
-    printf("player movement process 3\n");
+    //printf("player movement process 3\n");
     if (IsLocalPlayer()) // checks if we're the local player
         MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, game->GetDeltaTime());
 
     if (game->IsClient)
     {
-        printf("rendering process 4\n");
+        //cout << inventory.EquippedItemIdx << endl;
+        if (IsMouseButtonPressed(0) && IsLocalPlayer() && CurrentState.health > 0)
+        {
+            cout << "I AM ALIVE! " << inventory.EquippedItemIdx << endl;
+            inventory.Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
+        }
+        //printf("rendering process 4\n");
         string tex = "player2";
         if (IsLocalPlayer())
             tex = "player1";
@@ -330,11 +341,11 @@ void Player::Update()
         DrawTexturePro(((GameClient*)game)->MainResources.GetTexture(tex), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
     }
 
-    std::cout << "DONE PROCESSING PLAYER!" << "\n" << std::flush;
+    //std::cout << "DONE PROCESSING PLAYER!" << "\n" << std::flush;
 }
 
 void Player::Destroy()
 {
-    printf("destroying player %i\n", PlayerID);
+    //printf("destroying player %i\n", PlayerID);
     inventory.Destroy();
 }

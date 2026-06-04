@@ -29,7 +29,7 @@ struct WeaponAttack
 struct WeaponState
 {
     WeaponType type = NONE;
-    std::string texture = "";
+    char texture[32] = {};
     int inventoryIdx = -1;
     bool animating = false;
 };
@@ -43,7 +43,7 @@ class Weapon
 {
     public:
 
-    Inventory* inventory = nullptr;
+    Inventory* inventory;
 
     std::string Texture = "";
     WeaponType Type = NONE;
@@ -53,10 +53,10 @@ class Weapon
 
     Weapon();
     Weapon(Inventory* inventory, WeaponType type, std::string texture, float damage, float cooldown);
-    ~Weapon();
-    bool CanAttack();
-    void Attack(WeaponAttack attackInfo);
-    void Update();
+    virtual ~Weapon();
+    virtual bool CanAttack();
+    virtual void Attack(WeaponAttack attackInfo);
+    virtual void Update();
 };
 
 class ProjectileWeapon : public Weapon
@@ -75,8 +75,8 @@ public:
         float range, float spreadAngleRange, int shots, int ammo);
     ~ProjectileWeapon();
     bool CanAttack();
-    void Attack(WeaponAttack attackInfo);
-    void Update();
+    void Attack(WeaponAttack attackInfo) override;
+    void Update() override;
 };
 
 #define INVENTORY_SIZE 3
@@ -84,13 +84,13 @@ public:
 class Inventory
 {
 public:
-    Game* game = nullptr;
-    Player* Owner = nullptr;
+    Game* game;
+    Player* Owner;
     std::shared_ptr<Weapon> Weapons[INVENTORY_SIZE];
 
     int EquippedItemIdx = -1;
 
-    Inventory(Game* game, Player* owner);
+    Inventory(Game* game, Player* MyPlayerOwner);
     Inventory();
     ~Inventory();
 

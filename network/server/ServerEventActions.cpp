@@ -136,6 +136,7 @@ void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
 void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
+    cout << "GOT ATTACK PACKET!\n" << flush;
     Player* AttackingPlayer = (Player*)Event.peer->data;
     WeaponAttack attackInfo;
     memcpy(&attackInfo, &Packet.data, sizeof(WeaponAttack));
@@ -148,5 +149,6 @@ void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Even
 
     attackInfo.inventoryIdx = max(min(attackInfo.inventoryIdx, 2), 0);
 
+    cout << "ATTACKING!\n" << flush;
     AttackingPlayer->inventory.Attack(attackInfo);
 }
