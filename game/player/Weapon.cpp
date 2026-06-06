@@ -8,18 +8,20 @@
 
 #include "../Game.h"
 
+float LerpAngle(float current, float target, float t) {
+    float diff = fmodf(target - current + 540.0f, 360.0f) - 180.0f;
+    return current + diff * t;
+}
+
 Weapon::Weapon()
 {
 }
 
-Weapon::Weapon(Inventory* inventory, WeaponType type, std::string texture, float damage, float cooldown)
+Weapon::Weapon(Inventory* inventory, struct WeaponData weaponData)
 {
     this->inventory = inventory;
-    this->Type = type;
-    this->Texture = texture;
-    this->Damage = damage;
-    this->CooldownState = cooldown;
-    this->MaxCooldown = cooldown;
+    this->WeaponData = weaponData;
+    this->CooldownState = 0.0f;
 }
 
 Weapon::~Weapon()
@@ -36,17 +38,18 @@ bool Weapon::CanAttack()
 
 void Weapon::Attack(WeaponAttack attackInfo)
 {
-    cout << "attack func started!\n" << flush;
     if (!CanAttack())
         return;
-    cout << "CAN attack!\n" << flush;
-    this->CooldownState = this->MaxCooldown;
+    this->CooldownState = this->WeaponData.cooldown;
 }
 
 void Weapon::Update()
 {
     if (CooldownState > 0.0f)
         CooldownState -= inventory->game->GetDeltaTime();
+
+    std::string c = to_string(*WeaponData.texture);
+
     //cout << CooldownState<< "\n" << flush;
 }
 
@@ -54,14 +57,9 @@ ProjectileWeapon::ProjectileWeapon()
 {
 }
 
-ProjectileWeapon::ProjectileWeapon(Inventory* inventory, std::string texture, float damage,
-    float cooldown, float range, float spreadAngleRange, int shots, int ammo) : Weapon(inventory,PROJECTILE,texture,damage,cooldown)
+ProjectileWeapon::ProjectileWeapon(Inventory* inventory, struct WeaponData weapon_data) : Weapon(inventory,weapon_data)
 {
-    this->Range = range;
-    this->SpreadAngleRange = spreadAngleRange;
-    this->Shots = shots;
-    this->Ammo = ammo;
-    this->MaxAmmo = ammo;
+    Ammo = weapon_data.ammo;
 }
 
 ProjectileWeapon::~ProjectileWeapon()
@@ -79,43 +77,36 @@ bool ProjectileWeapon::CanAttack()
 
 void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 {
-    cout << "attack func started!(proj)\n" << flush;
     if (!CanAttack())
         return;
     Weapon::Attack(attackInfo);
-    cout << "attack init!\n" << flush;
 
     if (inventory->game->IsClient)
     {
         GameClient* game_client = (GameClient*) inventory->game;
         game_client->MainClient.AttackWithWeapon(attackInfo);
-        cout << "ATTACKINGclient!\n" << flush;
     } else
     {
         GameServer* game_server = (GameServer*) inventory->game;
         Map& game_map = game_server->MainMap;
 
-        for (int i = 0; i < Shots; i++)
+        for (int i = 0; i < WeaponData.shots; i++)
         {
             float Angle = 180.0f - Vector2LineAngle(attackInfo.origin, attackInfo.target) * RAD2DEG;
-            if (SpreadAngleRange > 0.0f)
-                Angle += GetRandomValue(-SpreadAngleRange * 5.0f, SpreadAngleRange * 5.0f) / 10.0f;
+            if (WeaponData.spreadAngleRange > 0.0f)
+                Angle += GetRandomValue(-WeaponData.spreadAngleRange * 5.0f, WeaponData.spreadAngleRange * 5.0f) / 10.0f;
 
             for (auto &[id,peer] : game_server->MainServer.Players)
             {
                 Player* plr = (Player*) peer->data;
                 if (plr == this->inventory->Owner)
                     continue;
-                if (Vector2Distance(attackInfo.origin, plr->GetCenter()) >= Range)
+                if (Vector2Distance(attackInfo.origin, plr->GetCenter()) >= WeaponData.range)
                     continue;
                 RayCastResult result = game_map.CastRay(attackInfo.origin, Angle, Vector2Distance(attackInfo.origin, plr->GetCenter()));
 
-                cout << "BURN THAT MICROFILM BUDDY, WILL YA " <<Vector2Distance(result.hitPositionWorldSpace, plr->GetCenter()) << "\nTARGETS:\nBLACKOPS " <<
-                    (result.hitTile == nullptr ? -1 : *result.hitTile)
-                    << endl;
-
-                if (result.hitTile == nullptr && Vector2Distance(result.hitPositionWorldSpace, plr->GetCenter()) <= 36.0f)
-                    plr->CurrentState.health -= Damage;
+                if (result.hitTile == nullptr && Vector2Distance(result.hitPositionWorldSpace, plr->GetCenter()) <= 25.45f)
+                    plr->CurrentState.health -= WeaponData.damage;
             }
         }
     }
@@ -154,6 +145,19 @@ Inventory::~Inventory()
 bool Inventory::IsHoldingItem()
 {
     return EquippedItemIdx != -1;
+}
+
+void Inventory::SetItem(WeaponData newWeaponData, int Idx)
+{
+    std::shared_ptr<Weapon> wep = nullptr;
+    if (newWeaponData.type == NONE)
+        return;
+    if (newWeaponData.type == PROJECTILE)
+        wep = make_shared<ProjectileWeapon>(this, newWeaponData);
+    else
+        wep = make_shared<Weapon>(this, newWeaponData);
+    if (wep != nullptr)
+        SetItem(wep, Idx);
 }
 
 void Inventory::SetItem(std::shared_ptr<Weapon> newWeapon, int Idx)
@@ -219,10 +223,8 @@ void Inventory::UnequipItem()
 
 void Inventory::Attack(int Idx, Vector2 Target)
 {
-    cout << "IDX CHECK 1\n";
     if (Idx < 0 || Idx >= INVENTORY_SIZE)
         return;
-    cout << "IDX CHECK 1 PASSED\n";
     WeaponAttack attackInfo = {
         Owner->GetCenter(),
         Target,
@@ -239,33 +241,56 @@ void Inventory::Attack(Vector2 Target)
 
 void Inventory::Attack(WeaponAttack attackInfo)
 {
-    cout << "IDX CHECK 2\n";
     if (attackInfo.inventoryIdx < 0 || attackInfo.inventoryIdx >= INVENTORY_SIZE)
         return;
-    cout << "IDX CHECK 2 PASSED\n";
-    cout << "NULLPTR CHECK 1\n";
     if (Weapons[attackInfo.inventoryIdx] != nullptr)
     {
-        cout << "NULLPTR CHECK 1 PASSED\n";
         Weapons[attackInfo.inventoryIdx]->Attack(attackInfo);
-    } else
-        cout << "NULLPTR CHECK 1 FAILED\n";
+    }
 }
 
 void Inventory::Update()
 {
-    //printf("processing weapons\n");
+    SetCharacterWeaponState();
 
-    //cout << Owner << "\n" << std::flush;
-    //printf("client/keys detection process 1\n");
     if (game != nullptr && game->IsClient)
     {
-        if (IsKeyPressed(KEY_ONE))
-            EquipItem(0);
-        if (IsKeyPressed(KEY_TWO))
-            EquipItem(1);
-        if (IsKeyPressed(KEY_THREE))
-            EquipItem(2);
+        if (Owner->IsLocalPlayer())
+        {
+            if (Owner->CurrentState.health > 0)
+            {
+                if (IsKeyPressed(KEY_ONE))
+                    EquipItem(0);
+                if (IsKeyPressed(KEY_TWO))
+                    EquipItem(1);
+                if (IsKeyPressed(KEY_THREE))
+                    EquipItem(2);
+            } else
+            {
+                UnequipItem();
+
+            }
+        }
+
+        std::string c = Owner->CurrentState.weapon_state.texture;
+
+        if (!c.empty())
+        {
+            GameClient* game_c = (GameClient*)game;
+
+            WeaponRenderRot = LerpAngle(WeaponRenderRot, Owner->CurrentState.rotation, 24.0f * game->GetDeltaTime());
+
+            Vector2 offset = {
+                cosf(WeaponRenderRot * DEG2RAD) * 100.0f,
+                sinf(WeaponRenderRot * DEG2RAD) * 100.0f
+            };
+
+            Texture2D& g = game_c->MainResources.GetTexture(c);
+            DrawTexturePro(g, {0, 0, (float) g.width, (float) g.height}, {
+                Owner->GetCenter().x - offset.x, Owner->GetCenter().y - offset.y,
+                (float)g.width * 3.0f, (float)g.height * 3.0f,
+            }, {g.width * 1.5f, g.height * 1.5f}, WeaponRenderRot, WHITE);
+        }
     }
 
     //printf("weapons update process 2\n");
@@ -275,33 +300,25 @@ void Inventory::Update()
         Weapons[EquippedItemIdx]->Update();
     }
 
-    //printf("owner state mod process 3\n");
-    //std::cout << EquippedItemIdx << "\n" << std::flush;
+}
+
+void Inventory::SetCharacterWeaponState()
+{
+    if (!Owner->IsLocalPlayer())
+        return;
     if (Owner != nullptr && EquippedItemIdx != -1 && Weapons[EquippedItemIdx] != nullptr && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE)
     {
-        //printf("setting state, owner id %i\n", Owner->PlayerID);
-
-        char texture[32];
-        strncpy(texture, Weapons[EquippedItemIdx]->Texture.c_str(), sizeof(texture) - 1);
-        texture[sizeof(texture) - 1] = '\0'; // ensure null terminator
-
-        //std::cout << std::flush;
         Owner->CurrentState.weapon_state = {
-            Weapons[EquippedItemIdx]->Type,
+            Weapons[EquippedItemIdx]->WeaponData.type,
             {},
             EquippedItemIdx,
             false
         };
-        memcpy(&Owner->CurrentState.weapon_state.texture, texture, sizeof(texture));
+        memcpy(&Owner->CurrentState.weapon_state.texture, Weapons[EquippedItemIdx]->WeaponData.texture, sizeof(Weapons[EquippedItemIdx]->WeaponData.texture));
     } else if (Owner != nullptr)
     {
-        //std::cout << "THERE'S A RED SPIRAL OUT TONIGHT " << Owner->PlayerID << "\n" << std::flush;
-        //std::cout << "THERE'S A RED SPIRAL OUT TO GET THE REST NIGHT " << Owner->CurrentState.position.x << "\n" << std::flush;
-
         char texture[32];
-        texture[0] = '\0'; // ensure null terminator
-
-        //std::cout << std::flush;
+        texture[0] = '\0';
         Owner->CurrentState.weapon_state = {
             NONE,
             {},
@@ -310,8 +327,16 @@ void Inventory::Update()
         };
         memcpy(&Owner->CurrentState.weapon_state.texture, texture, sizeof(texture));
     }
-    //std::cout << "DONE PROCESSING WEAPONS!" << "\n" << std::flush;
+}
 
+WeaponData Inventory::GetWeaponData(int Idx)
+{
+    WeaponData defaultReturn = {"", NONE, 0, 0, 0, 0, 0, 0};
+    if (Idx < 0 || Idx >= INVENTORY_SIZE)
+        return defaultReturn;
+    if (Weapons[Idx] != nullptr)
+        return Weapons[Idx]->WeaponData;
+    return defaultReturn;
 }
 
 void Inventory::Destroy()

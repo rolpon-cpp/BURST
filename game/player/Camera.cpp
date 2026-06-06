@@ -34,17 +34,22 @@ Vector2 BurstCamera::GetCameraPos()
     return RaylibCamera.target;
 }
 
+void BurstCamera::ShakeCamera(float Intensity)
+{
+    CameraShakes = max(min(Intensity / 0.125f, 1), 20);
+    CameraShakeOffset = {(float)GetRandomValue(-70 * Intensity, 70 * Intensity), (float)GetRandomValue(-70 * Intensity, 70 * Intensity)};
+    NextCameraShakeOffsetChange = game->MainClient.GetServerTime() + 0.01f;
+}
+
 void BurstCamera::Update()
 {
     if (CameraShakes > 0 && game->MainClient.GetServerTime() >= NextCameraShakeOffsetChange)
     {
-        if (CameraShakes == 1)
-            CameraShakeOffset = {0, 0};
-        else
-            CameraShakeOffset = {(float)GetRandomValue(-100, 100), (float)GetRandomValue(-100, 100)};
+        CameraShakeOffset = {(float)GetRandomValue(-50, 50), (float)GetRandomValue(-50, 50)};
 
         RaylibCamera.offset = {GetRenderWidth() / 2.0f + CameraShakeOffset.x, GetRenderHeight() / 2.0f + CameraShakeOffset.y};
 
+        NextCameraShakeOffsetChange = game->MainClient.GetServerTime() + 0.01f;
         CameraShakes--;
     }
     if (game->MainClient.Connected)

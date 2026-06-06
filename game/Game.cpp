@@ -122,7 +122,7 @@ void GameServer::Start(string IPAddress, int Port)
 {
     Game::Start(IPAddress, Port);
     MainMap.GenerateMap(GetRandomValue(1000,5000));
-    MainServer.StartServer(IPAddress, Port);
+    MainServer.StartServer(Port);
 }
 
 void GameServer::Stop()

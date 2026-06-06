@@ -73,6 +73,7 @@ void PlayerUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
             OurClient.Players[NewState.id].PreviousPlayerStates.end()
         );
     }
+
 }
 
 void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
@@ -84,25 +85,25 @@ void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     OurClient.game->MainMap.SetChunk(&ServerChunkUpload.Chunk, ServerChunkUpload.ChunkPos.x, ServerChunkUpload.ChunkPos.y);
 }
 
-void HealthUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+void ServerPropertiesUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
-    PlayerHealthUpdate health_update;
-    memcpy(&health_update, &Packet.data, sizeof(health_update));
+    PlayerServerProperties serv_properties;
+    memcpy(&serv_properties, &Packet.data, sizeof(serv_properties));
 
-    OurClient.game->MainPlayer.CurrentState.health = health_update.health;
-    OurClient.game->MainPlayer.LocalState.health = health_update.health;
+    OurClient.game->MainPlayer.inventory.SetItem(serv_properties.idx1, 0);
+    OurClient.game->MainPlayer.inventory.SetItem(serv_properties.idx2, 1);
+    OurClient.game->MainPlayer.inventory.SetItem(serv_properties.idx3, 2);
+
+    OurClient.game->MainPlayer.CurrentState.health = serv_properties.health;
+    OurClient.game->MainPlayer.LocalState.health = serv_properties.health;
 }
 
 void PlayerCharacterResetAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 {
-    PlayerCharacterReset resetChar;
-    memcpy(&resetChar, &Packet.data, sizeof(PlayerCharacterReset));
+    PlayerState resetChar;
+    memcpy(&resetChar, &Packet.data, sizeof(resetChar));
 
-    OurClient.OurPlayerID = resetChar.id;
-    OurClient.game->MainPlayer.CurrentState.id = resetChar.id;
-    OurClient.game->MainPlayer.PlayerID = resetChar.id;
-
-    OurClient.game->MainPlayer.CurrentState.position = resetChar.position;
-    OurClient.game->MainPlayer.CurrentState.health = resetChar.health;
-    OurClient.game->MainPlayer.CurrentState.speed = resetChar.speed;
+    OurClient.game->MainPlayer.CurrentState = resetChar;
+    OurClient.game->MainPlayer.LastState = resetChar;
+    OurClient.game->MainPlayer.LocalState = resetChar;
 }

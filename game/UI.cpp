@@ -40,6 +40,15 @@ void UI::Update()
     DrawText((to_string(static_cast<int>(round(game->MainClient.Ping * 1000.0f))) + "ms ping").c_str(), 15, 15, 20, BLACK);
     DrawText((to_string((int)round(game->GetDeltaTime() * 1000.0f)) + "ms frame time").c_str(), 15, 35, 20, BLACK);
 
+    if (game->MainPlayer.CurrentState.health <= 0.0f)
+    {
+        const char* c = "u ded :(, r to revive";
+        float siz = MeasureText(c, 40.0f);
+        DrawText(c, UIRenderTexture.texture.width/2.0f - siz/2.0f, UIRenderTexture.texture.height * 0.75f, 40, RED);
+        if (IsKeyPressed(KEY_R))
+            game->MainClient.Respawn();
+    }
+
     float W = 250;
     float H = 56;
     Rectangle REC = {15, UIRenderTexture.texture.height - 15 - H, W, H};

@@ -47,14 +47,7 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
         myPacket.type = PLAYER_CHAR_RESET;
         myPacket.timestamp = OurServer.game->GetTime();
 
-        PlayerCharacterReset charReset = {0};
-        charReset.id = PlayerToUpdate->PlayerID;
-        charReset.position = PlayerToUpdate->CurrentState.position;
-        charReset.health = PlayerToUpdate->CurrentState.health;
-        charReset.timestamp = OurServer.game->GetTime();
-        charReset.speed = PlayerToUpdate->CurrentState.speed;
-
-        memcpy(&myPacket.data, &charReset, sizeof(charReset));
+        memcpy(&myPacket.data, &PreviousPlayerState, sizeof(PreviousPlayerState));
 
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Event.peer, 0, packet);
@@ -136,10 +129,12 @@ void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
 void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
-    cout << "GOT ATTACK PACKET!\n" << flush;
     Player* AttackingPlayer = (Player*)Event.peer->data;
     WeaponAttack attackInfo;
     memcpy(&attackInfo, &Packet.data, sizeof(WeaponAttack));
+
+    if (AttackingPlayer->CurrentState.health <= 0.0f)
+        return;
 
     if (Vector2Distance(attackInfo.origin, AttackingPlayer->CurrentState.position) >= 100.0f)
         attackInfo.origin = AttackingPlayer->CurrentState.position;
@@ -149,6 +144,26 @@ void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Even
 
     attackInfo.inventoryIdx = max(min(attackInfo.inventoryIdx, 2), 0);
 
-    cout << "ATTACKING!\n" << flush;
     AttackingPlayer->inventory.Attack(attackInfo);
+}
+
+void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+{
+    Player* RespawningPlayer = (Player*)Event.peer->data;
+    if (RespawningPlayer->CurrentState.health <= 0.0f)
+    {
+        RespawningPlayer->CurrentState.health = 100.0f;
+        RespawningPlayer->CurrentState.position = OurServer.GetSpawnLocation();
+        RespawningPlayer->LastState = RespawningPlayer->CurrentState;
+        RespawningPlayer->LocalState = RespawningPlayer->CurrentState;
+
+        struct Packet myPacket = {};
+        myPacket.type = PLAYER_CHAR_RESET;
+        myPacket.timestamp = OurServer.game->GetTime();
+
+        memcpy(&myPacket.data, &RespawningPlayer->CurrentState, sizeof(RespawningPlayer->CurrentState));
+
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(Event.peer, 0, packet);
+    }
 }

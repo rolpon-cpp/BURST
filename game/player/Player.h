@@ -32,8 +32,11 @@ struct PlayerDash {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct PlayerHealthUpdate {
+struct PlayerServerProperties {
     float health = 0;
+    WeaponData idx1;
+    WeaponData idx2;
+    WeaponData idx3;
 };
 #pragma pack(pop)
 
@@ -47,16 +50,6 @@ struct PlayerState {
     float health = 0;
     float speed = 0;
     WeaponState weapon_state = WeaponState{};
-    double timestamp = 0;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct PlayerCharacterReset {
-    int32_t id = 0;
-    Vector2 position = {0,0};
-    float health = 0;
-    float speed = 0;
     double timestamp = 0;
 };
 #pragma pack(pop)

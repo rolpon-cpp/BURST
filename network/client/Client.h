@@ -31,6 +31,7 @@ public:
 
     double ServerTimeOffset;
     double LastUpdatedState;
+    double LastRespawned;
     double Ping;
 
     int32_t OurPlayerID;
@@ -48,6 +49,7 @@ public:
     void RequestChunk(Vector2 Position);
     void AttackWithWeapon(WeaponAttack Attack);
     void DashIntoPlayer(Vector2 ImpactPoint, float Damage);
+    void Respawn();
     double GetServerTime();
 };
 

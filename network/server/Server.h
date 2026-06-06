@@ -33,7 +33,7 @@ class Server
     void PlayerCreateCharacter(ENetPeer* Peer);
     void PlayerUpdateNotification(Player* UpdatedPlayer, ENetPeer* PeerToNotify);
     void PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify);
-    void PlayerHealthNotification(ENetPeer* PeerToNotify);
+    void PlayerServerPropertiesNotification(ENetPeer* PeerToNotify);
     void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
 
 public:
@@ -45,9 +45,11 @@ public:
     Server(Game* game);
     ~Server();
     void Reset();
-    void StartServer(std::string IPAddress = "127.0.0.1", int Port = 5000, int MaxClients = 32);
+    void StartServer(int Port = 5000, int MaxClients = 32);
     void UpdateServer();
     void StopServer();
+
+    Vector2 GetSpawnLocation();
 };
 
 #endif //SERVER_H

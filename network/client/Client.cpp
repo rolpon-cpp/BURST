@@ -10,6 +10,7 @@
 #include "Client.h"
 #include "../Utils.h"
 #include "../Packet.h"
+#include "../../game/Game.h"
 #include "../../game/world/Map.h"
 #include "../../game/player/Player.h"
 
@@ -141,12 +142,13 @@ void Client::Reset()
     EventActions[PLAYER_LEFT] = &PlayerLeftAction;
     EventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
     EventActions[GET_CHUNK] = &GetChunkAction;
-    EventActions[PLAYER_HEALTH_UPDATE] = &HealthUpdateAction;
+    EventActions[PLAYER_SERV_PROP_UPDATE] = &ServerPropertiesUpdateAction;
     EventActions[PLAYER_CHAR_RESET] = &PlayerCharacterResetAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
     LastUpdatedState = 0;
+    LastRespawned = 0;
     Ping = 0;
     OurPlayerID = -1;
     Connected = false;
@@ -219,7 +221,7 @@ double Client::GetServerTime()
 
 void Client::UpdateState(PlayerState& State)
 {
-    if (Host != nullptr && Peer != nullptr && GetTimeUtils() - LastUpdatedState >= 1 / 50.0f)
+    if (Host != nullptr && Peer != nullptr && game->GetTime() - LastUpdatedState >= 1 / 50.0f)
     {
         Packet myPacket = {};
         myPacket.timestamp = State.timestamp;
@@ -228,7 +230,7 @@ void Client::UpdateState(PlayerState& State)
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
-        LastUpdatedState = GetTimeUtils();
+        LastUpdatedState = game->GetTime();
     }
 }
 
@@ -263,5 +265,22 @@ void Client::AttackWithWeapon(WeaponAttack Attack)
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
+    }
+}
+
+void Client::Respawn()
+{
+    if (Host != nullptr && Peer != nullptr)
+    {
+        if (game->GetTime() - LastRespawned < 5.0f)
+            return;
+        Packet myPacket = {};
+        myPacket.timestamp = GetServerTime();
+        myPacket.type = PLAYER_RESPAWN_REQ;
+
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(Peer, 0, packet);
+        enet_host_flush(Host);
+        LastRespawned = game->GetTime();
     }
 }

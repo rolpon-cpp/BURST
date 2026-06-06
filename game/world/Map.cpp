@@ -321,7 +321,6 @@ RayCastResult Map::CastRay(Vector2 Origin, Vector2 Target, float Range)
         // Test tile at new test point
         if (vMapCheck.x >= 0 && vMapCheck.x < (CHUNK_SIZE * WORLD_CHUNK_SIZE) && vMapCheck.y >= 0 && vMapCheck.y < (CHUNK_SIZE * WORLD_CHUNK_SIZE))
         {
-            cout << vMapCheck.x << " " << vMapCheck.y << endl;
             char* tileAtMapCheck = GetTile(vMapCheck.x, vMapCheck.y);
             if (tileAtMapCheck != nullptr && *tileAtMapCheck != 0)
             {

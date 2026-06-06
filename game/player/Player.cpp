@@ -68,10 +68,12 @@ Player::Player(float X, float Y, float Speed, Game* game)
     LocalState = CurrentState;
 
     inventory = Inventory(game, this);
-    inventory.GiveItem(make_shared<ProjectileWeapon>(
-            &inventory,
-            "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
-            ));
+    if (!game->IsClient)
+    {
+        inventory.GiveItem(make_shared<ProjectileWeapon>(&inventory,WeaponData{
+            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
+        }));
+    }
 }
 
 Player::Player(PlayerState State, Game* game)
@@ -87,10 +89,12 @@ Player::Player(PlayerState State, Game* game)
     LastDashed = 0;
 
     inventory = Inventory(game, this);
-    inventory.GiveItem(make_shared<ProjectileWeapon>(
-            &inventory,
-            "pistol", 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
-            ));
+    if (!game->IsClient)
+    {
+        inventory.GiveItem(make_shared<ProjectileWeapon>(&inventory,WeaponData{
+            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
+        }));
+    }
 }
 
 Player::Player()
@@ -239,11 +243,14 @@ void Player::ProcessDashing(PlayerState* State)
         {
             if (id == PlayerID)
                 continue;
+            if (id == DashedPlayerID)
+                continue;
             if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
                                    {player.CurrentState.position.x - 4.5f, player.CurrentState.position.y - 4.5f, 45, 45}))
             {
-                ((GameClient*)game)->MainClient.DashIntoPlayer(State->position, min(max(VelocityMagnitude / 200.0f, 0.0f), 20.0f));
+                ((GameClient*)game)->MainClient.DashIntoPlayer(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
                 DashedPlayerID = player.CurrentState.id;
+                ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
                 break;
             }
         }
@@ -320,7 +327,6 @@ void Player::Update()
         //cout << inventory.EquippedItemIdx << endl;
         if (IsMouseButtonPressed(0) && IsLocalPlayer() && CurrentState.health > 0)
         {
-            cout << "I AM ALIVE! " << inventory.EquippedItemIdx << endl;
             inventory.Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
         }
         //printf("rendering process 4\n");

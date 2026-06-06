@@ -51,9 +51,10 @@ void Server::Reset()
     PacketEventActions[PLAYER_DASH] = &PlayerDashAction;
     PacketEventActions[GET_CHUNK] = &GetChunkAction;
     PacketEventActions[PLAYER_WEAPON_ATTACK] = &PlayerWeaponAttackAction;
+    PacketEventActions[PLAYER_RESPAWN_REQ] = &PlayerRespawnRequestAction;
 }
 
-void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
+void Server::StartServer(int Port, int MaxClients)
 {
     if (Running)
         return;
@@ -61,8 +62,7 @@ void Server::StartServer(std::string IPAddress, int Port, int MaxClients)
     printf("Starting server...\n");
 
     ENetAddress Address;
-
-    enet_address_set_host_ip(&Address, IPAddress.c_str());
+    Address.host = ENET_HOST_ANY;
     Address.port = Port;
 
     Host = enet_host_create(&Address, MaxClients, 2, 0, 0);
@@ -89,12 +89,20 @@ void Server::PlayerTimeSync(ENetPeer* Peer)
     enet_peer_send(Peer, 0, packet);
 }
 
+Vector2 Server::GetSpawnLocation()
+{
+    return {(WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2.0f
+        + (float)GetRandomValue(-200, 200),
+            (WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2.0f
+        + (float)GetRandomValue(-200, 200)
+    };
+}
+
 void Server::PlayerCreateCharacter(ENetPeer* Peer)
 {
     LatestPlayerID += 1;
     auto* newPlayer = new Player({
-        LatestPlayerID, {100 + (float)GetRandomValue(-100, 100), 250
-     + (float)GetRandomValue(-100, 100)}, {0, 0}, {0, 0}, 0, 100.0f, 350.0f, WeaponState{}, game->GetTime()
+        LatestPlayerID, GetSpawnLocation(), {0, 0}, {0, 0}, 0, 100.0f, 350.0f, WeaponState{}, game->GetTime()
     }, game);
     newPlayer->PlayerID = LatestPlayerID;
     newPlayer->LastState = newPlayer->CurrentState;
@@ -107,14 +115,7 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
     myPacket.type = PLAYER_CHAR_RESET;
     myPacket.timestamp = game->GetTime();
 
-    PlayerCharacterReset charReset = {0};
-    charReset.id = newPlayer->PlayerID;
-    charReset.position = newPlayer->CurrentState.position;
-    charReset.health = newPlayer->CurrentState.health;
-    charReset.timestamp = game->GetTime();
-    charReset.speed = newPlayer->CurrentState.speed;
-
-    memcpy(&myPacket.data, &charReset, sizeof(charReset));
+    memcpy(&myPacket.data, &newPlayer->CurrentState, sizeof(newPlayer->CurrentState));
 
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(Peer, 0, packet);
@@ -252,19 +253,20 @@ void Server::HandlePlayerStates()
 {
     if (!Running)
         return;
-    if (Players.size() <= 1)
-        return;
     if (game->GetTime() - LastUpdatedPlayers < 1.0f / 50.0f)
         return;
 
     for (auto [id, peer] : Players)
     {
-        PlayerHealthNotification(peer);
-        for (auto [other_id, other_peer] : Players)
+        PlayerServerPropertiesNotification(peer);
+        if (Players.size() > 1)
         {
-            auto* player = reinterpret_cast<Player*>(other_peer->data);
-            if (other_id != id)
-                PlayerUpdateNotification(player, peer);
+            for (auto [other_id, other_peer] : Players)
+            {
+                auto* player = reinterpret_cast<Player*>(other_peer->data);
+                if (other_id != id)
+                    PlayerUpdateNotification(player, peer);
+            }
         }
     }
 
@@ -273,15 +275,17 @@ void Server::HandlePlayerStates()
     enet_host_flush(Host);
 }
 
-void Server::PlayerHealthNotification(ENetPeer* PeerToNotify)
+void Server::PlayerServerPropertiesNotification(ENetPeer* PeerToNotify)
 {
     Player* plr = static_cast<Player*>(PeerToNotify->data);
     Packet myPacket;
-    myPacket.type = PLAYER_HEALTH_UPDATE;
+    myPacket.type = PLAYER_SERV_PROP_UPDATE;
     myPacket.timestamp = plr->CurrentState.timestamp;
 
-    PlayerHealthUpdate health_update = {plr->CurrentState.health};
-    memcpy(&myPacket.data, &health_update, sizeof(health_update));
+    PlayerServerProperties serv_properties = {
+        plr->CurrentState.health, plr->inventory.GetWeaponData(0), plr->inventory.GetWeaponData(1), plr->inventory.GetWeaponData(2)
+    };
+    memcpy(&myPacket.data, &serv_properties, sizeof(serv_properties));
 
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
     enet_peer_send(PeerToNotify, 0, packet);
