@@ -78,7 +78,7 @@ void Map::GenerateMap(int Seed)
                 int fX = x + g * (distb(gen) == 1 ? 1 : -1);
                 int fY = y + g * (distb(gen) == 1 ? 1 : -1);
                 Vector2 Tile = {(float) fX + 0.5f, (float) fY + 0.5f};
-                if (Vector2Distance(WorldCenter, Tile) >= 4)
+                if (Vector2Distance(WorldCenter, Tile) >= 12)
                     SetTile(1, fX, fY);
             }
         }

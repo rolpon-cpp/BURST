@@ -43,6 +43,9 @@ void BurstCamera::ShakeCamera(float Intensity)
 
 void BurstCamera::Update()
 {
+    float Scroll = GetMouseWheelMove() * game->GetDeltaTime() * 10.0f;
+    RaylibCamera.zoom += Scroll;
+    RaylibCamera.zoom = min(max(RaylibCamera.zoom, 0.25f), 2.0f);
     if (CameraShakes > 0 && game->MainClient.GetServerTime() >= NextCameraShakeOffsetChange)
     {
         CameraShakeOffset = {(float)GetRandomValue(-50, 50), (float)GetRandomValue(-50, 50)};

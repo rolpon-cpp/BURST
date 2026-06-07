@@ -151,7 +151,10 @@ void Inventory::SetItem(WeaponData newWeaponData, int Idx)
 {
     std::shared_ptr<Weapon> wep = nullptr;
     if (newWeaponData.type == NONE)
+    {
+        DropItem(Idx);
         return;
+    }
     if (newWeaponData.type == PROJECTILE)
         wep = make_shared<ProjectileWeapon>(this, newWeaponData);
     else

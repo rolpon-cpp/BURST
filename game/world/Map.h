@@ -6,7 +6,7 @@
 #define BURST_MAP_H
 
 #define CHUNK_SIZE 12
-#define WORLD_CHUNK_SIZE 10
+#define WORLD_CHUNK_SIZE 4
 #define TILE_SIZE 72
 
 #include <vector>
