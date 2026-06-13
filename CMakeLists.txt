@@ -48,15 +48,17 @@ add_executable(BURST main.cpp
         network/Utils.h
         network/server/ServerEventActions.h
         network/server/ServerEventActions.cpp
-        game/world/Map.cpp
-        game/world/Map.h
+        game/world/WorldMap.cpp
+        game/world/WorldMap.h
         game_libs.h
         game/UI.cpp
         game/UI.h
         game/player/Weapon.cpp
         game/player/Weapon.h
         game/world/Particles.cpp
-        game/world/Particles.h)
+        game/world/Particles.h
+        game/Sounds.h
+        game/Sounds.cpp)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)
 

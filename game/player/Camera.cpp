@@ -14,7 +14,7 @@ BurstCamera::BurstCamera(GameClient* game)
 {
     this->game = game;
     this->RaylibCamera = { GetRenderWidth() / 2.0f, GetRenderHeight() / 2.0f, 0, 0, 0, 1.0f};
-
+    this->IsZoomingCamera = false;
     this->CameraShakes = 0;
     this->NextCameraShakeOffsetChange = 0.0f;
     this->CameraShakeOffset = {0, 0};
@@ -22,6 +22,12 @@ BurstCamera::BurstCamera(GameClient* game)
 
 BurstCamera::~BurstCamera()
 {
+}
+
+void BurstCamera::ZoomCamera(float Zoom)
+{
+    IsZoomingCamera = true;
+    RaylibCamera.zoom = lerp(RaylibCamera.zoom, Zoom, 10.0f * game->GetDeltaTime());
 }
 
 Vector2 BurstCamera::GetWorldMousePos()
@@ -43,23 +49,29 @@ void BurstCamera::ShakeCamera(float Intensity)
 
 void BurstCamera::Update()
 {
+    /*
     float Scroll = GetMouseWheelMove() * game->GetDeltaTime() * 10.0f;
     RaylibCamera.zoom += Scroll;
     RaylibCamera.zoom = min(max(RaylibCamera.zoom, 0.25f), 2.0f);
+    */
     if (CameraShakes > 0 && game->MainClient.GetServerTime() >= NextCameraShakeOffsetChange)
     {
-        CameraShakeOffset = {(float)GetRandomValue(-50, 50), (float)GetRandomValue(-50, 50)};
+        CameraShakeOffset = {(float)GetRandomValue(-600, 600), (float)GetRandomValue(-600, 600)};
 
-        RaylibCamera.offset = {GetRenderWidth() / 2.0f + CameraShakeOffset.x, GetRenderHeight() / 2.0f + CameraShakeOffset.y};
-
-        NextCameraShakeOffsetChange = game->MainClient.GetServerTime() + 0.01f;
+        NextCameraShakeOffsetChange = game->MainClient.GetServerTime() + 0.005f;
         CameraShakes--;
     }
+    if (CameraShakes <= 0)
+        CameraShakeOffset = {0,0};
     if (game->MainClient.Connected)
     {
         this->RaylibCamera.target = Vector2Lerp(this->RaylibCamera.target,
-            game->MainPlayer.GetCenter(), 6.5f * game->GetDeltaTime());
+            game->MainPlayer.GetCenter() + CameraShakeOffset, 6.5f * game->GetDeltaTime());
     }
+    if (IsZoomingCamera)
+        IsZoomingCamera=false;
+    else
+        RaylibCamera.zoom = lerp(RaylibCamera.zoom, 1.0f, 5.0f * game->GetDeltaTime());
 }
 
 void BurstCamera::Start()

@@ -16,6 +16,7 @@ class BurstCamera
     int CameraShakes;
     double NextCameraShakeOffsetChange;
     Vector2 CameraShakeOffset;
+    bool IsZoomingCamera = false;
 
 public:
 
@@ -30,6 +31,7 @@ public:
     Vector2 GetCameraPos();
 
     void ShakeCamera(float Intensity);
+    void ZoomCamera(float Zoom);
 
     void Start();
     void Stop();

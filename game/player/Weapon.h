@@ -43,6 +43,7 @@ struct WeaponData
     float damage = 0.0f;
     float cooldown = 0.0f;
     float range = 0.0f;
+    float intensity = 0.0f;
     float spreadAngleRange = 0.0f;
     int shots = 0;
     int ammo = 0;
@@ -61,7 +62,6 @@ class Weapon
 
     WeaponData WeaponData;
     float CooldownState;
-
 
     Weapon();
     Weapon(Inventory* inventory, struct WeaponData weaponData);

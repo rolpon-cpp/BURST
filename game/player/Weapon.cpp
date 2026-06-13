@@ -84,11 +84,12 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
     if (inventory->game->IsClient)
     {
         GameClient* game_client = (GameClient*) inventory->game;
+        game_client->MainCamera.ShakeCamera(WeaponData.intensity);
         game_client->MainClient.AttackWithWeapon(attackInfo);
     } else
     {
         GameServer* game_server = (GameServer*) inventory->game;
-        Map& game_map = game_server->MainMap;
+        WorldMap& game_map = game_server->MainMap;
 
         for (int i = 0; i < WeaponData.shots; i++)
         {
@@ -334,7 +335,7 @@ void Inventory::SetCharacterWeaponState()
 
 WeaponData Inventory::GetWeaponData(int Idx)
 {
-    WeaponData defaultReturn = {"", NONE, 0, 0, 0, 0, 0, 0};
+    WeaponData defaultReturn = {"", NONE, 0, 0, 0, 0, 0, 0, 0};
     if (Idx < 0 || Idx >= INVENTORY_SIZE)
         return defaultReturn;
     if (Weapons[Idx] != nullptr)

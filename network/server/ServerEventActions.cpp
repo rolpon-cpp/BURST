@@ -8,7 +8,7 @@
 
 #include "Server.h"
 #include "../../game/player/Player.h"
-#include "../../game/world/Map.h"
+#include "../../game/world/WorldMap.h"
 #include "../../game/Game.h"
 #include "../Packet.h"
 #include "../Utils.h"
@@ -91,39 +91,39 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
     enet_peer_send(Event.peer, 0, GetChunkENetPacket);
 }
 
-void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
-    Player* DashingPlayer = (Player*)Event.peer->data;
-    if (OurServer.game->GetTime() - DashingPlayer->LastDashed < 1.0f)
+    Player* AttackingPlayer = (Player*)Event.peer->data;
+    if (OurServer.game->GetTime() - AttackingPlayer->LastDashed < 0.8f)
         return;
 
-    DashingPlayer->LastDashed = OurServer.game->GetTime();
+    AttackingPlayer->LastDashed = OurServer.game->GetTime();
 
-    PlayerDash dash;
-    memcpy(&dash, &Packet.data, sizeof(PlayerDash));
+    PlayerMovementAttack atk;
+    memcpy(&atk, &Packet.data, sizeof(PlayerMovementAttack));
 
-    PlayerState DashingPlayerState = DashingPlayer->GetPlayerState(Packet.timestamp);
+    PlayerState AttackingPlayerState = AttackingPlayer->GetPlayerState(Packet.timestamp);
 
     // Distance Anticheat check
-    if (Vector2Distance(DashingPlayerState.position, dash.impact) >= 50)
-        dash.impact = DashingPlayerState.position;
+    if (Vector2Distance(AttackingPlayerState.position, atk.impact) >= 50)
+        atk.impact = AttackingPlayerState.position;
 
     // Health Anticheat check
-    if (DashingPlayer->CurrentState.health <= 0.0f)
+    if (AttackingPlayer->CurrentState.health <= 0.0f)
         return;
 
     // Damage Anticheat limit
-    dash.damage = min(max(dash.damage, 0.0f), 20.0f);
+    atk.damage = min(max(atk.damage, 0.0f), 20.0f);
 
     for (auto &[id, peer] : OurServer.Players)
     {
-        if (id == DashingPlayer->PlayerID)
+        if (id == AttackingPlayer->PlayerID)
             continue;
         Player* VictimPlayer = (Player*) peer->data;
         PlayerState VictimPlayerState = VictimPlayer->GetPlayerState(Packet.timestamp);
 
-        if (CheckCollisionRecs({dash.impact.x, dash.impact.y, 36, 36}, {VictimPlayerState.position.x, VictimPlayerState.position.y, 36, 36}))
-            VictimPlayer->CurrentState.health -= dash.damage;
+        if (Vector2Distance(VictimPlayerState.position, AttackingPlayerState.position)<=150)
+            VictimPlayer->CurrentState.health -= atk.damage;
     }
 }
 

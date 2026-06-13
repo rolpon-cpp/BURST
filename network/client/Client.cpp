@@ -11,7 +11,7 @@
 #include "../Utils.h"
 #include "../Packet.h"
 #include "../../game/Game.h"
-#include "../../game/world/Map.h"
+#include "../../game/world/WorldMap.h"
 #include "../../game/player/Player.h"
 
 using namespace std;
@@ -234,17 +234,17 @@ void Client::UpdateState(PlayerState& State)
     }
 }
 
-void Client::DashIntoPlayer(Vector2 ImpactPoint, float Damage)
+void Client::MovementAttack(Vector2 ImpactPoint, float Damage)
 {
     if (Host != nullptr && Peer != nullptr)
     {
         Packet myPacket = {};
         myPacket.timestamp = GetServerTime();
-        myPacket.type = PLAYER_DASH;
+        myPacket.type = PLAYER_MOVEMENT_ATTACK;
 
-        PlayerDash playerDash{ImpactPoint, Damage};
+        PlayerMovementAttack player_movement_attack{ImpactPoint, Damage};
 
-        memcpy(&myPacket.data, &playerDash, sizeof(PlayerDash));
+        memcpy(&myPacket.data, &player_movement_attack, sizeof(PlayerMovementAttack));
 
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Peer, 0, packet);

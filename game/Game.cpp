@@ -3,12 +3,15 @@
 //
 
 #include "Game.h"
-
+#include <iostream>
+#include <ostream>
+#include "world/WorldMap.h"
 #include "../network/Utils.h"
 
 Game::Game()
 {
-    MainMap = Map(this);
+    IsClient = false;
+    MainMap = WorldMap(this);
     DeltaTime = 0.0f;
     LastTime = this->GetTime();
 }
@@ -19,9 +22,9 @@ Game::~Game()
 
 double Game::GetTime()
 {
-    if (!IsClient)
-        return GetTimeUtils();
-    return static_cast<GameClient*>(this)->MainClient.GetServerTime();
+    if (IsClient)
+        return static_cast<GameClient*>(this)->MainClient.GetServerTime();
+    return GetTimeUtils();
 }
 
 double Game::GetDeltaTime()
@@ -57,7 +60,7 @@ GameClient::GameClient() : Game()
     MainPlayer = Player(0, 0, 350.0f, this);
     MainClient = Client(this);
     MainResources = Resources(this);
-
+    MainSounds = Sounds(this);
     MainUI = UI(this);
 
     MainResources.Load();
@@ -76,6 +79,7 @@ void GameClient::Stop()
     Game::Stop();
     MainUI.Stop();
     MainClient.Disconnect();
+    MainSounds.Clear();
 }
 
 void GameClient::Update()
@@ -106,9 +110,10 @@ void GameClient::Update()
 void GameClient::Quit()
 {
     Game::Quit();
-    MainUI.Stop();
     Stop();
+    MainUI.Stop();
     MainResources.Unload();
+    MainSounds.Quit();
     MainPlayer.Destroy();
 }
 
@@ -147,4 +152,12 @@ void GameServer::Quit()
 {
     Stop();
     Game::Quit();
+}
+
+GameClient::~GameClient()
+{
+}
+
+GameServer::~GameServer()
+{
 }

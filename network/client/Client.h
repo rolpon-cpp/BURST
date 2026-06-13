@@ -48,7 +48,7 @@ public:
     void UpdateState(PlayerState& State);
     void RequestChunk(Vector2 Position);
     void AttackWithWeapon(WeaponAttack Attack);
-    void DashIntoPlayer(Vector2 ImpactPoint, float Damage);
+    void MovementAttack(Vector2 ImpactPoint, float Damage);
     void Respawn();
     double GetServerTime();
 };

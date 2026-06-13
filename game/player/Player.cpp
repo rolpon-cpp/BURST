@@ -63,6 +63,7 @@ Player::Player(float X, float Y, float Speed, Game* game)
     CurrentState.speed = Speed;
     CurrentState.timestamp = 0;
     DisplayHealth = 100.0f;
+    LastZoned = 0.0f;
     LastDashed = 0;
     LastState = CurrentState;
     LocalState = CurrentState;
@@ -71,7 +72,7 @@ Player::Player(float X, float Y, float Speed, Game* game)
     if (!game->IsClient)
     {
         inventory.GiveItem(make_shared<ProjectileWeapon>(&inventory,WeaponData{
-            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
+            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.1f, 0.0f, 1, 100
         }));
     }
 }
@@ -87,12 +88,13 @@ Player::Player(PlayerState State, Game* game)
     LocalState = CurrentState;
     DisplayHealth = CurrentState.health;
     LastDashed = 0;
+    LastZoned = 0.0f;
 
     inventory = Inventory(game, this);
     if (!game->IsClient)
     {
         inventory.GiveItem(make_shared<ProjectileWeapon>(&inventory,WeaponData{
-            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.0f, 1, 100
+            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.1f, 0.0f, 1, 100
         }));
     }
 }
@@ -190,28 +192,57 @@ void Player::SmoothPlayerState(double Delay)
 
 Vector2 Player::ProcessInputs()
 {
-    Vector2 MyPlayerDirection = {0, 0};
-    if (IsKeyDown(KEY_A))
-        MyPlayerDirection.x -= 1;
-    if (IsKeyDown(KEY_D))
-        MyPlayerDirection.x += 1;
-    if (IsKeyDown(KEY_W))
-        MyPlayerDirection.y -= 1;
-    if (IsKeyDown(KEY_S))
-        MyPlayerDirection.y += 1;
-    if (IsKeyPressed(KEY_SPACE) && ((GameClient*)game)->MainClient.GetServerTime() - LastDashed >= 1)
+    if (ZoneTarget == -1)
     {
-        CurrentState.velocity = Vector2Normalize(
-            GetScreenToWorld2D(GetMousePosition(), ((GameClient*)game)->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
-                18, 18
-            })) * 2500.0f;
-        LastDashed = ((GameClient*)game)->MainClient.GetServerTime();
-        IsDashing = true;
-        DashedPlayerID = -1;
+    Vector2 MyPlayerDirection = {0, 0};
+
+        if (IsKeyDown(KEY_A))
+            MyPlayerDirection.x -= 1;
+        if (IsKeyDown(KEY_D))
+            MyPlayerDirection.x += 1;
+        if (IsKeyDown(KEY_W))
+            MyPlayerDirection.y -= 1;
+        if (IsKeyDown(KEY_S))
+            MyPlayerDirection.y += 1;
+        if (IsKeyPressed(KEY_SPACE) && Vector2Distance({0, 0}, CurrentState.velocity) < 500 && ((GameClient*)game)->MainClient.GetServerTime() - LastDashed >= 1)
+        {
+            CurrentState.velocity = Vector2Normalize(
+                GetScreenToWorld2D(GetMousePosition(), ((GameClient*)game)->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
+                    18, 18
+                })) * 2500.0f;
+            LastDashed = ((GameClient*)game)->MainClient.GetServerTime();
+            IsDashing = true;
+            DashedPlayerID = -1;
+        }
+        if (IsKeyPressed(KEY_F) && Vector2Distance({0, 0}, CurrentState.velocity) < 500 && game->GetTime() - LastZoned >= 1.0f)
+        {
+            int32_t id = -1;
+            for (auto &[plr_id, plr] : ((GameClient*)game)->MainClient.Players)
+            {
+                if (Vector2Distance(plr.GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) <= 50.0f &&
+                    game->MainMap.CastRay(CurrentState.position, plr.CurrentState.position).hitTile == nullptr)
+                {
+                    id = plr_id;
+                    break;
+                }
+            }
+
+            if (id != -1)
+            {
+                ZoneTarget = id;
+                LastZoned = game->GetTime();
+            }
+        }
+        MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
+        CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) * RAD2DEG;
+        return MyPlayerDirection;
     }
-    MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
-    CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) * RAD2DEG;
-    return MyPlayerDirection;
+    if (((GameClient*)game)->MainClient.Players.contains(ZoneTarget))
+    {
+        Player& plr = ((GameClient*)game)->MainClient.Players[ZoneTarget];
+        CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), plr.GetCenter()) * RAD2DEG;
+    }
+    return {0,0};
 }
 
 void Player::ProcessVelocity(PlayerState* State, float Delta)
@@ -227,7 +258,7 @@ void Player::ProcessVelocity(PlayerState* State, float Delta)
         State->velocity.y = 0;
 }
 
-void Player::ProcessDashing(PlayerState* State)
+void Player::ProcessMovementAttacks(PlayerState* State)
 {
     float VelocityMagnitude = Vector2Distance({0, 0}, State->velocity);
 
@@ -248,11 +279,32 @@ void Player::ProcessDashing(PlayerState* State)
             if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
                                    {player.CurrentState.position.x - 4.5f, player.CurrentState.position.y - 4.5f, 45, 45}))
             {
-                ((GameClient*)game)->MainClient.DashIntoPlayer(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
+                ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
                 DashedPlayerID = player.CurrentState.id;
                 ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
                 break;
             }
+        }
+    } else if (ZoneTarget != -1 && ((GameClient*)game)->MainClient.Players.contains(ZoneTarget))
+    {
+        State->velocity = Vector2Normalize(((GameClient*)game)->MainClient.Players[ZoneTarget].CurrentState.position-State->position) * 2000.0f;
+        float TargetDist = Vector2Distance(State->position, ((GameClient*)game)->MainClient.Players[ZoneTarget].CurrentState.position);
+        float Percent = (TargetDist / 600.0f);
+        if (Percent >= 1.0f)
+            Percent = 1.0f;
+        if (Percent <= 0.0f)
+            Percent = 0.0f;
+
+        ((GameClient*)game)->MainCamera.ZoomCamera(max(3.0f - Percent*3.0f, 1.0f));
+        if (TargetDist <= 50.0f)
+        {
+            ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
+            ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
+            ZoneTarget = -1;
+        }
+        if (ZoneTarget != -1 && game->GetTime() - LastZoned >= 1.0f)
+        {
+            ZoneTarget = -1;
         }
     }
 }
@@ -296,7 +348,8 @@ void Player::MovePlayer(Vector2 Direction, float Delta, bool UseLocalState)
 
     ProcessVelocity(FinalState,Delta);
     ProcessDirection(FinalState, Delta);
-    ProcessDashing(FinalState);
+    if (IsLocalPlayer())
+        ProcessMovementAttacks(FinalState);
 
     FinalState->timestamp = ((GameClient*)game)->MainClient.GetServerTime();
     LocalState = *FinalState;

@@ -8,7 +8,7 @@
 #include <iostream>
 
 #include "../Utils.h"
-#include "../../game/world/Map.h"
+#include "../../game/world/WorldMap.h"
 #include "../../game/Game.h"
 #include "Client.h"
 #include "../Packet.h"

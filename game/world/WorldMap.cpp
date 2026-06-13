@@ -2,7 +2,7 @@
 // Created by lalit on 5/13/2026.
 //
 
-#include "Map.h"
+#include "WorldMap.h"
 #include <random>
 #include <iostream>
 
@@ -12,24 +12,22 @@
 
 using namespace std;
 
-Map::Map()
-{
-    this->ClearMap();
-}
-
-Map::~Map()
+WorldMap::WorldMap()
 {
 }
 
-Map::Map(Game* game)
+WorldMap::~WorldMap()
+{
+}
+
+WorldMap::WorldMap(Game* game)
 {
     this->game = game;
     this->ClearMap();
 }
 
-void Map::GenerateMap(int Seed)
+void WorldMap::GenerateMap(int Seed)
 {
-    //printf("Generating map...\n");
     ClearMap();
     std::mt19937 gen(Seed);
     std::uniform_int_distribution distr(25, 50);
@@ -86,41 +84,41 @@ void Map::GenerateMap(int Seed)
     //printf("Map successfully generated!\n");
 }
 
-Chunk* Map::GetChunk(int x, int y)
+Chunk* WorldMap::GetChunk(int x, int y)
 {
     if (x >= WORLD_CHUNK_SIZE || x < 0 || y >= WORLD_CHUNK_SIZE || y < 0)
         return nullptr;
     return &Chunks[y * WORLD_CHUNK_SIZE + x];
 }
 
-char* Map::GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y)
+char* WorldMap::GetTileInChunk(Chunk* ChunkToGetFrom, int x, int y)
 {
     if (x >= CHUNK_SIZE || x < 0 || y >= CHUNK_SIZE || y < 0)
         return nullptr;
     return &ChunkToGetFrom->Data[y * CHUNK_SIZE + x];
 }
 
-void Map::SetChunk(Chunk* ChunkToSet, int x, int y)
+void WorldMap::SetChunk(Chunk* ChunkToSet, int x, int y)
 {
     if (x >= WORLD_CHUNK_SIZE || x < 0 || y >= WORLD_CHUNK_SIZE || y < 0)
         return;
     Chunks[y * WORLD_CHUNK_SIZE + x] = *ChunkToSet;
 }
 
-void Map::SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y)
+void WorldMap::SetTileInChunk(Chunk* ChunkToSet, char TileToSet, int x, int y)
 {
     if (x >= CHUNK_SIZE || x < 0 || y >= CHUNK_SIZE || y < 0)
         return;
     ChunkToSet->Data[y * CHUNK_SIZE + x] = TileToSet;
 }
 
-void Map::ClearMap()
+void WorldMap::ClearMap()
 {
-    memset(&Chunks, 0, sizeof(Chunks));
+    memset(&Chunks, 0, (WORLD_CHUNK_SIZE * WORLD_CHUNK_SIZE) * (CHUNK_SIZE * CHUNK_SIZE));
     MarkedChunks.clear();
 }
 
-bool Map::ChunkIsMarked(int x, int y)
+bool WorldMap::ChunkIsMarked(int x, int y)
 {
     for (MarkedChunk p : MarkedChunks)
     {
@@ -130,7 +128,7 @@ bool Map::ChunkIsMarked(int x, int y)
     return false;
 }
 
-void Map::MarkChunk(int x, int y)
+void WorldMap::MarkChunk(int x, int y)
 {
     GameClient* gc = (GameClient*)game;
     gc->MainClient.RequestChunk(Vector2{(float)x, (float)y});
@@ -139,7 +137,7 @@ void Map::MarkChunk(int x, int y)
     MarkedChunks.push_back(MarkedChunk{x,y,game->GetTime()});
 }
 
-void Map::UpdateChunk(int cx, int cy)
+void WorldMap::UpdateChunk(int cx, int cy)
 {
     Chunk* chunk = GetChunk(cx, cy);
     if (chunk == nullptr)
@@ -182,7 +180,7 @@ void Map::UpdateChunk(int cx, int cy)
     }
 }
 
-void Map::Update()
+void WorldMap::Update()
 {
     for (int cx = 0; cx < WORLD_CHUNK_SIZE; cx++)
     {
@@ -196,7 +194,7 @@ void Map::Update()
     }
 }
 
-Rectangle Map::GetTileRect(int cx, int cy, int x, int y)
+Rectangle WorldMap::GetTileRect(int cx, int cy, int x, int y)
 {
     Chunk* chunk = GetChunk(cx, cy);
     if (chunk == nullptr)
@@ -210,7 +208,7 @@ Rectangle Map::GetTileRect(int cx, int cy, int x, int y)
     return {((float)(cx * CHUNK_SIZE) + x)*TILE_SIZE, ((float)(cy * CHUNK_SIZE) + y)*TILE_SIZE, TILE_SIZE, TILE_SIZE};
 }
 
-Rectangle Map::GetTileRect(int worldX, int worldY)
+Rectangle WorldMap::GetTileRect(int worldX, int worldY)
 {
     int x = worldX % CHUNK_SIZE;
     int cx = (worldX - x) / CHUNK_SIZE;
@@ -219,7 +217,7 @@ Rectangle Map::GetTileRect(int worldX, int worldY)
     return GetTileRect(cx, cy, x, y);
 }
 
-bool Map::CollisionCheck(Rectangle rectangle)
+bool WorldMap::CollisionCheck(Rectangle rectangle)
 {
     for (int x = -1; x <= 1; x++)
     {
@@ -243,7 +241,7 @@ bool Map::CollisionCheck(Rectangle rectangle)
     return false;
 }
 
-RayCastResult Map::CastRay(Vector2 Origin, float Angle, float Range)
+RayCastResult WorldMap::CastRay(Vector2 Origin, float Angle, float Range)
 {
     float cX = -cos(Angle * (2 * PI / 360)) * Range;
     float cY = -sin(Angle * (2 * PI / 360)) * Range;
@@ -251,7 +249,7 @@ RayCastResult Map::CastRay(Vector2 Origin, float Angle, float Range)
     return CastRay(Origin, Target, Range);
 }
 
-RayCastResult Map::CastRay(Vector2 Origin, Vector2 Target, float Range)
+RayCastResult WorldMap::CastRay(Vector2 Origin, Vector2 Target, float Range)
 {
     Vector2 vRayStart = Vector2{Origin.x / TILE_SIZE, Origin.y / TILE_SIZE};
     Vector2 vRayTarget = Vector2{Target.x / TILE_SIZE, Target.y / TILE_SIZE};
@@ -337,7 +335,7 @@ RayCastResult Map::CastRay(Vector2 Origin, Vector2 Target, float Range)
     return {tile, vMapCheck, vIntersection};
 }
 
-char* Map::GetTile(int worldX, int worldY)
+char* WorldMap::GetTile(int worldX, int worldY)
 {
     int x = worldX % CHUNK_SIZE;
     int cx = (worldX - x) / CHUNK_SIZE;
@@ -350,7 +348,7 @@ char* Map::GetTile(int worldX, int worldY)
     return GetTileInChunk(chunk, x, y);
 }
 
-void Map::SetTile(char TileToSet, int worldX, int worldY)
+void WorldMap::SetTile(char TileToSet, int worldX, int worldY)
 {
     int x = worldX % CHUNK_SIZE;
     int cx = (worldX - x) / CHUNK_SIZE;

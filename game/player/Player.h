@@ -9,8 +9,6 @@
 #include "raymath.h"
 #include "Weapon.h"
 
-#define PLR_DASH_COOLDOWN 1
-
 #pragma pack(push, 1)
 struct PlayerJoin {
     int32_t id = 0;
@@ -25,7 +23,7 @@ struct PlayerLeft {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct PlayerDash {
+struct PlayerMovementAttack {
     Vector2 impact = {0,0};
     float damage = 0;
 };
@@ -77,6 +75,9 @@ public:
     double LastDashed = 0.0f;
     bool IsDashing = false;
 
+    int32_t ZoneTarget = -1;
+    double LastZoned = 0.0f;
+
     double DisplayHealth;
 
     Player();
@@ -88,7 +89,7 @@ public:
     Vector2 GetCenter();
 
     void ProcessVelocity(PlayerState* State, float Delta);
-    void ProcessDashing(PlayerState* State);
+    void ProcessMovementAttacks(PlayerState* State);
     void ProcessDirection(PlayerState* State, float Delta, int Steps = 1);
 
     void SmoothPlayerState(double Delay);

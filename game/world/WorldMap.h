@@ -43,16 +43,16 @@ struct ChunkUpload
 
 class Game;
 
-class Map
+class WorldMap
 {
 public:
     Game* game;
     Chunk Chunks[WORLD_CHUNK_SIZE * WORLD_CHUNK_SIZE];
     std::vector<MarkedChunk> MarkedChunks;
 
-    Map();
-    Map(Game* game);
-    ~Map();
+    WorldMap();
+    WorldMap(Game* game);
+    ~WorldMap();
 
     void Update();
     void UpdateChunk(int cx, int cy);

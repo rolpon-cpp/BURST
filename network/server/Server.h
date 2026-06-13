@@ -37,10 +37,10 @@ class Server
     void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
 
 public:
-    Game* game;
+    Game* game = nullptr;
     unordered_map<int32_t, ENetPeer*> Players;
     ENetHost* Host = nullptr;
-    bool Running;
+    bool Running = false;
     Server();
     Server(Game* game);
     ~Server();

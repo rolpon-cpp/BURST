@@ -11,7 +11,7 @@ class Server;
 struct Packet;
 
 void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
-void PlayerDashAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
+void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Event);

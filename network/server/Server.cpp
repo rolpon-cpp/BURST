@@ -14,6 +14,14 @@ using namespace std;
 
 Server::Server()
 {
+    Players = unordered_map<int32_t, ENetPeer*>();
+    PacketEventActions = unordered_map<PacketType, void(*)(Server& OurServer, Packet& Packet, ENetEvent& Event)>();
+    Host = nullptr;
+    Running = false;
+    LastSyncedTime = 0.0f;
+    LastUpdatedPlayers = 0.0f;
+    LatestPlayerID = -1;
+
     Reset();
     game = nullptr;
 }
@@ -21,6 +29,15 @@ Server::Server()
 Server::Server(Game* game)
 {
     this->game = game;
+
+    Players = unordered_map<int32_t, ENetPeer*>();
+    PacketEventActions = unordered_map<PacketType, void(*)(Server& OurServer, Packet& Packet, ENetEvent& Event)>();
+    Host = nullptr;
+    Running = false;
+    LastSyncedTime = 0.0f;
+    LastUpdatedPlayers = 0.0f;
+    LatestPlayerID = -1;
+
     Reset();
 }
 
@@ -48,7 +65,7 @@ void Server::Reset()
 
     PacketEventActions.clear();
     PacketEventActions[PLAYER_UPDATE] = &PlayerUpdateAction;
-    PacketEventActions[PLAYER_DASH] = &PlayerDashAction;
+    PacketEventActions[PLAYER_MOVEMENT_ATTACK] = &PlayerMovementAttackAction;
     PacketEventActions[GET_CHUNK] = &GetChunkAction;
     PacketEventActions[PLAYER_WEAPON_ATTACK] = &PlayerWeaponAttackAction;
     PacketEventActions[PLAYER_RESPAWN_REQ] = &PlayerRespawnRequestAction;

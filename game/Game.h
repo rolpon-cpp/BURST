@@ -5,40 +5,43 @@
 #ifndef BURST_GAME_H
 #define BURST_GAME_H
 #include "Resources.h"
+#include "Sounds.h"
 #include "../network/client/Client.h"
 #include "UI.h"
 #include "player/Camera.h"
-#include "world/Map.h"
+#include "world/WorldMap.h"
 #include "../network/server/Server.h"
 
 class Game
 {
 public:
     bool IsClient;
-    Map MainMap;
+    WorldMap MainMap;
     double LastTime;
     double DeltaTime;
 
     Game();
-    ~Game();
+    virtual ~Game();
 
-    void Start(string IPAddress = "127.0.0.1", int Port = 5000);
-    double GetTime();
-    double GetDeltaTime();
-    void Stop();
-    void Update();
-    void Quit();
+    virtual void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    virtual double GetTime();
+    virtual double GetDeltaTime();
+    virtual void Stop();
+    virtual void Update();
+    virtual void Quit();
 };
 
 class GameClient : public Game
 {
 public:
     Player MainPlayer;
+    Sounds MainSounds;
     BurstCamera MainCamera;
     Client MainClient;
     Resources MainResources;
     UI MainUI;
     GameClient();
+    virtual ~GameClient();
     void Start(string IPAddress = "127.0.0.1", int Port = 5000);
     void Stop();
     void Update();
@@ -50,6 +53,7 @@ class GameServer : public Game
 public:
     Server MainServer;
     GameServer();
+    ~GameServer();
     void Start(string IPAddress = "127.0.0.1", int Port = 5000);
     void Stop();
     void Update();
