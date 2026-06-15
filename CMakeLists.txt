@@ -58,7 +58,9 @@ add_executable(BURST main.cpp
         game/world/Particles.cpp
         game/world/Particles.h
         game/Sounds.h
-        game/Sounds.cpp)
+        game/Sounds.cpp
+        game/world/Animation.cpp
+        game/world/Animation.h)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)
 

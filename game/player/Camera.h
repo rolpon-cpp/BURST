@@ -18,10 +18,14 @@ class BurstCamera
     Vector2 CameraShakeOffset;
     bool IsZoomingCamera = false;
 
+    Camera2D RaylibCamera;
+
 public:
 
     GameClient *game;
-    Camera2D RaylibCamera;
+
+    Vector2 CameraPos;
+    float CameraZoom;
 
     BurstCamera();
     BurstCamera(GameClient *game);

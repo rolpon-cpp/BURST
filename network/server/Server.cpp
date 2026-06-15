@@ -115,6 +115,48 @@ Vector2 Server::GetSpawnLocation()
     };
 }
 
+void Server::SendPacket(ENetPeer* plr, Packet packet, bool reliable)
+{
+    ENetPacket* enet_packet = enet_packet_create(&packet, sizeof(packet), (reliable ? ENET_PACKET_FLAG_RELIABLE : 0));
+    enet_peer_send(plr, 0, enet_packet);
+}
+
+void Server::SendPacketToAll(Packet packet, std::vector<int32_t> exclusions, bool reliable)
+{
+    for (auto &[id,plr] : Players)
+    {
+        bool found = false;
+
+        for (int32_t e_id : exclusions)
+        {
+            if (e_id == id)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            SendPacket(plr, packet);
+    }
+}
+
+void Server::SendPacket(ENetPeer* plr, PacketType type, void* data, int size, bool reliable)
+{
+    Packet myPacket = {};
+    myPacket.type = type;
+    memcpy(&myPacket.data, data, size);
+    SendPacket(plr, myPacket, reliable);
+}
+
+void Server::SendPacketToAll(PacketType type, void* data, int size, std::vector<int32_t> exclusions, bool reliable)
+{
+    Packet myPacket = {};
+    myPacket.type = type;
+    memcpy(&myPacket.data, data, size);
+    SendPacketToAll(myPacket, exclusions, reliable);
+}
+
 void Server::PlayerCreateCharacter(ENetPeer* Peer)
 {
     LatestPlayerID += 1;

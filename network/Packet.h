@@ -18,6 +18,7 @@ enum PacketType {
     PLAYER_LEFT,
     NEW_PLAYER,
 
+    ANIMATION,
     TIME_SYNC,
     GET_CHUNK,
 

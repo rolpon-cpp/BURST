@@ -48,8 +48,11 @@ public:
     void StartServer(int Port = 5000, int MaxClients = 32);
     void UpdateServer();
     void StopServer();
-
     Vector2 GetSpawnLocation();
+    void SendPacket(ENetPeer* plr, Packet packet, bool reliable = true);
+    void SendPacket(ENetPeer* plr, PacketType type, void* data, int size, bool reliable = true);
+    void SendPacketToAll(PacketType type, void* data, int size, std::vector<int32_t> exclusions = std::vector<int32_t>(), bool reliable = true);
+    void SendPacketToAll(Packet packet, std::vector<int32_t> exclusions = std::vector<int32_t>(), bool reliable = true);
 };
 
 #endif //SERVER_H

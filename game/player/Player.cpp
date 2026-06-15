@@ -207,9 +207,7 @@ Vector2 Player::ProcessInputs()
         if (IsKeyPressed(KEY_SPACE) && Vector2Distance({0, 0}, CurrentState.velocity) < 500 && ((GameClient*)game)->MainClient.GetServerTime() - LastDashed >= 1)
         {
             CurrentState.velocity = Vector2Normalize(
-                GetScreenToWorld2D(GetMousePosition(), ((GameClient*)game)->MainCamera.RaylibCamera) - (CurrentState.position + Vector2{
-                    18, 18
-                })) * 2500.0f;
+                ((GameClient*)game)->MainCamera.GetWorldMousePos() - GetCenter()) * 2500.0f;
             LastDashed = ((GameClient*)game)->MainClient.GetServerTime();
             IsDashing = true;
             DashedPlayerID = -1;
@@ -219,7 +217,7 @@ Vector2 Player::ProcessInputs()
             int32_t id = -1;
             for (auto &[plr_id, plr] : ((GameClient*)game)->MainClient.Players)
             {
-                if (Vector2Distance(plr.GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) <= 50.0f &&
+                if (Vector2Distance(plr.GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) <= 100.0f &&
                     game->MainMap.CastRay(CurrentState.position, plr.CurrentState.position).hitTile == nullptr)
                 {
                     id = plr_id;
@@ -279,6 +277,15 @@ void Player::ProcessMovementAttacks(PlayerState* State)
             if (CheckCollisionRecs({State->position.x, State->position.y, 36, 36},
                                    {player.CurrentState.position.x - 4.5f, player.CurrentState.position.y - 4.5f, 45, 45}))
             {
+                SoundEffect sound_effect =
+                {
+                    "dash_hit",
+                    1.0f,
+                    1.0f,
+                };
+                sound_effect.set_properties(0);
+                ((GameClient*)game)->MainSounds.PlayGameSound(sound_effect);
+
                 ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
                 DashedPlayerID = player.CurrentState.id;
                 ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
@@ -298,8 +305,17 @@ void Player::ProcessMovementAttacks(PlayerState* State)
         ((GameClient*)game)->MainCamera.ZoomCamera(max(3.0f - Percent*3.0f, 1.0f));
         if (TargetDist <= 50.0f)
         {
-            ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
-            ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
+            SoundEffect sound_effect =
+            {
+                "dash_hit",
+                1.0f,
+                1.0f,
+            };
+            sound_effect.set_properties(0);
+            ((GameClient*)game)->MainSounds.PlayGameSound(sound_effect);
+
+            ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 400.0f, 0.0f), 20.0f));
+            ((GameClient*)game)->MainCamera.ShakeCamera(0.2f);
             ZoneTarget = -1;
         }
         if (ZoneTarget != -1 && game->GetTime() - LastZoned >= 1.0f)

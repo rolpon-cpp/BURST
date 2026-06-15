@@ -11,6 +11,8 @@
 #include "player/Camera.h"
 #include "world/WorldMap.h"
 #include "../network/server/Server.h"
+#include "world/Animation.h"
+#include "world/Particles.h"
 
 class Game
 {
@@ -37,6 +39,8 @@ public:
     Player MainPlayer;
     Sounds MainSounds;
     BurstCamera MainCamera;
+    Particles MainParticles;
+    Animator MainAnimator;
     Client MainClient;
     Resources MainResources;
     UI MainUI;
@@ -54,7 +58,7 @@ public:
     Server MainServer;
     GameServer();
     ~GameServer();
-    void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    void Start(int Port = 5000);
     void Stop();
     void Update();
     void Quit();

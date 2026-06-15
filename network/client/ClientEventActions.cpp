@@ -107,3 +107,11 @@ void PlayerCharacterResetAction(Client& OurClient, Packet& Packet, ENetEvent& Ev
     OurClient.game->MainPlayer.LastState = resetChar;
     OurClient.game->MainPlayer.LocalState = resetChar;
 }
+
+void AnimationEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    AnimationEvent event;
+    memcpy(&event, &Packet.data, sizeof(event));
+
+    OurClient.game->MainAnimator.Animate(event);
+}

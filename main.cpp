@@ -5,6 +5,7 @@
 
 #include "vector"
 #include "game/Game.h"
+#include "network/Utils.h"
 
 using namespace std;
 
@@ -21,6 +22,7 @@ std::vector<std::string> split(const std::string& s, char delim) {
 
 void client() {
     InitWindow(1280, 720, "BURST Client");
+    InitAudioDevice();
     SetTargetFPS(120);
 
     std::string ip = "";
@@ -51,25 +53,41 @@ void client() {
     }
 
     game.Quit();
+    CloseAudioDevice();
     CloseWindow();
 }
 
-void server() {
+void server(int Port) {
+    SetRandomSeed(GetTimeUtils());
     GameServer game = GameServer();
-    game.Start();
+    game.Start(Port);
     while (game.MainServer.Running)
         game.Update();
     game.Stop();
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2)
+    if (argc < 2)
+    {
+        cout << "Not enough arguments. Please provide a client/server argument. If server, provide an optional port argument\n" << std::flush;
         return 0;
+    }
     enet_initialize();
     std::string arg = argv[1];
+    int port = 5000;
+    if (argc == 3)
+    {
+        try
+        {
+            port = std::stoi(argv[2]);
+        } catch (std::invalid_argument& e)
+        {
+            cout << "failed to get port argument, defaulting to port 5000\n" << std::flush;
+        }
+    }
     if (arg== "server") {
         printf("Server selected.\n");
-        server();
+        server(port);
     } else {
         _sleep(1500);
         printf("Client selected.\n");

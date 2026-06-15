@@ -61,6 +61,8 @@ GameClient::GameClient() : Game()
     MainClient = Client(this);
     MainResources = Resources(this);
     MainSounds = Sounds(this);
+    MainAnimator = Animator(this);
+    MainParticles = Particles(this);
     MainUI = UI(this);
 
     MainResources.Load();
@@ -78,6 +80,8 @@ void GameClient::Stop()
 {
     Game::Stop();
     MainUI.Stop();
+    MainParticles.Clear();
+    MainAnimator.Clear();
     MainClient.Disconnect();
     MainSounds.Clear();
 }
@@ -96,8 +100,11 @@ void GameClient::Update()
         Player.SmoothPlayerState(0.05f);
         Player.Update();
     }
-
     MainPlayer.Update();
+
+    MainAnimator.Update();
+    MainParticles.Update();
+    MainSounds.Update();
 
     MainCamera.Update();
     MainCamera.Stop();
@@ -114,6 +121,8 @@ void GameClient::Quit()
     MainUI.Stop();
     MainResources.Unload();
     MainSounds.Quit();
+    MainParticles.Quit();
+    MainAnimator.Quit();
     MainPlayer.Destroy();
 }
 
@@ -123,9 +132,9 @@ GameServer::GameServer() : Game()
     MainServer = Server(this);
 }
 
-void GameServer::Start(string IPAddress, int Port)
+void GameServer::Start(int Port)
 {
-    Game::Start(IPAddress, Port);
+    Game::Start("", Port);
     MainMap.GenerateMap(GetRandomValue(1000,5000));
     MainServer.StartServer(Port);
 }

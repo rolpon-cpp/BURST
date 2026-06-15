@@ -109,11 +109,11 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
         atk.impact = AttackingPlayerState.position;
 
     // Health Anticheat check
-    if (AttackingPlayer->CurrentState.health <= 0.0f)
+    if (AttackingPlayerState.health <= 0.0f)
         return;
 
     // Damage Anticheat limit
-    atk.damage = min(max(atk.damage, 0.0f), 20.0f);
+    atk.damage = min(max(atk.damage, 0.0f), 50.0f);
 
     for (auto &[id, peer] : OurServer.Players)
     {
@@ -123,7 +123,22 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
         PlayerState VictimPlayerState = VictimPlayer->GetPlayerState(Packet.timestamp);
 
         if (Vector2Distance(VictimPlayerState.position, AttackingPlayerState.position)<=150)
+        {
             VictimPlayer->CurrentState.health -= atk.damage;
+            AnimationEvent event;
+            event.type = SoundAnimationEvent;
+            event.use_position = false;
+            event.player_id = AttackingPlayer->PlayerID;
+            event.position = AttackingPlayerState.position;
+            event.sound_effect =
+            {
+                "dash_hit",
+                1.0f,
+                1.0f,
+            };
+            OurServer.SendPacketToAll(ANIMATION, &event, sizeof(event), {AttackingPlayer->PlayerID});
+            break;
+        }
     }
 }
 
@@ -163,7 +178,13 @@ void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
 
         memcpy(&myPacket.data, &RespawningPlayer->CurrentState, sizeof(RespawningPlayer->CurrentState));
 
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(Event.peer, 0, packet);
+        AnimationEvent respawnAnimationEvent{};
+        respawnAnimationEvent.position = RespawningPlayer->CurrentState.position;
+        respawnAnimationEvent.use_position = true;
+        respawnAnimationEvent.type = ParticleAnimationEvent;
+        respawnAnimationEvent.particle_effect = RESPAWN_PARTICLE_EFFECT;
+        OurServer.SendPacketToAll(ANIMATION, &respawnAnimationEvent, sizeof(AnimationEvent));
+
+        OurServer.SendPacket(Event.peer, myPacket);
     }
 }

@@ -14,39 +14,68 @@ class GameClient;
 #pragma pack(push, 1)
 struct ParticleEffect
 {
+    int amount = 0;
     Vector2 impact = {0, 0};
     Vector2 direction = {0, 0};
-    int amount = 0;
     float lifetime = 0;
+    float velocity = 0;
+    float velocity_slowdown = 0;
+    float size = 0;
     Color color = BLANK;
 
-    float directionVariety = 0;
-    float impactVariety = 0;
-    float lifetimeVariety = 0;
-    float colorVariety = 0;
+    float direction_variety = 0;
+    float impact_variety = 0;
+    float size_variety = 0;
+    float velocity_slowdown_variety = 0;
+    float lifetime_variety = 0;
+    float color_variety = 0;
+    float velocity_variety = 0;
 };
 #pragma pack(pop)
 
 struct Particle
 {
-    Vector2 position;
-    Vector2 direction;
-    float velocity;
-    Color color;
-    float lifetime;
+    Vector2 position{0,0};
+    Vector2 direction{0,0};
+    float velocity = 0;
+    float size = 0;
+    float velocity_slowdown = 0;
+    Color color = BLANK;
+    float lifetime = 0;
 };
+
+#define RESPAWN_PARTICLE_EFFECT ParticleEffect{20, {0,0}, {0,0}, 1.5f, 200.0f, 100.0f, 6.0f, GREEN, 200.0f, 25.0f, 2.0f, 25.0f, 1.25f, 0.25f, 50.0f};
 
 class Particles
 {
     public:
     GameClient* game;
-    std::vector<Particle> particles;
+    std::vector<Particle> HandledParticles;
     Particles();
     ~Particles();
     Particles(GameClient* game);
-    void CreateParticles(ParticleEffect effect);
+
+    void Clear();
     void Update();
     void Quit();
+
+    void CreateParticles(ParticleEffect effect);
+    void CreateParticles(
+        int amount = 0,
+        Vector2 impact = {0, 0},
+        Vector2 direction = {0, 0},
+        float lifetime = 0,
+        float velocity = 0,
+        float velocity_slowdown = 0,
+        float size = 0,
+        Color color = BLANK,
+        float direction_variety = 0,
+        float impact_variety = 0,
+        float size_variety = 0,
+        float velocity_slowdown_variety = 0,
+        float lifetime_variety = 0,
+        float color_variety = 0,
+        float velocity_variety = 0);
 };
 
 

@@ -11,6 +11,16 @@
 
 class GameClient;
 
+#pragma pack(push, 1)
+struct SoundEffect
+{
+    char SoundName[32];
+    float SoundVolume = 1.0f;
+    float SoundPitch = 1.0f;
+    void set_properties(float distance);
+};
+#pragma pack(pop)
+
 class Sounds {
     public:
     GameClient *game;
@@ -23,6 +33,7 @@ class Sounds {
     Sounds();
     ~Sounds();
     void PlayGameSound(std::string SoundName, float SoundVolume = 1.0f, float SoundPitch = 1.0f);
+    void PlayGameSound(SoundEffect effect);
     void PlayGameMusic(std::string MusicName, bool Transition = false);
     void StopGameMusic(std::string MusicName, bool Transition = false);
     bool IsGameMusicPlaying(std::string MusicName);

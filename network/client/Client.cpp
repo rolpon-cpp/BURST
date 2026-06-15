@@ -144,6 +144,7 @@ void Client::Reset()
     EventActions[GET_CHUNK] = &GetChunkAction;
     EventActions[PLAYER_SERV_PROP_UPDATE] = &ServerPropertiesUpdateAction;
     EventActions[PLAYER_CHAR_RESET] = &PlayerCharacterResetAction;
+    EventActions[ANIMATION] = &AnimationEventAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;

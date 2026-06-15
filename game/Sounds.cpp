@@ -8,20 +8,30 @@
 #include <iostream>
 #include <raymath.h>
 
+void SoundEffect::set_properties(float distance)
+{
+    float DistanceMultiplier = (1000.0f - distance) / 1000.0f;
+    DistanceMultiplier += GetRandomValue(-20, 20) / 100.0f;
+
+    SoundVolume *= DistanceMultiplier,
+        1.0f + GetRandomValue(-20, 20) / 100.0f;
+}
+
 Sounds::Sounds(GameClient *game) {
     this->game = game;
 
     MaxSoundPoolSize = 10;
 
-    std::string path = "assets";
+    std::string path = "assets/";
     for (const auto & entry : std::filesystem::directory_iterator(path)) {
         std::string p = entry.path().filename().string();
         if (p.ends_with(".mp3") || p.ends_with(".wav"))
         {
             Sound sound = LoadSound(entry.path().string().c_str());
-            SFX.insert({p, sound});
+            string d = GetFileNameWithoutExt(("assets/"+p).c_str());
+            SFX.insert({d, sound});
             std::vector<Sound> s = std::vector<Sound>();
-            CachedAliases[p] = s;
+            CachedAliases[d] = s;
         } else if (p.ends_with("music.mp3") || p.ends_with("music.wav"))
         {
             Music m = LoadMusicStream(entry.path().string().c_str());
@@ -158,6 +168,11 @@ void Sounds::StopGameMusic(std::string MusicName, bool Transition)
         MusicTransitions.push_back(make_tuple(MusicName, 0.0f, 1.0f));
         SetMusicVolume(Musics[MusicName], 1.0f);
     }
+}
+
+void Sounds::PlayGameSound(SoundEffect effect)
+{
+    PlayGameSound(effect.SoundName, effect.SoundVolume, effect.SoundPitch);
 }
 
 void Sounds::PlayGameSound(std::string SoundName, float SoundVolume, float SoundPitch) {
