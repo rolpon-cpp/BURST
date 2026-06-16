@@ -4,6 +4,9 @@
 
 #include "Particles.h"
 
+#include <iostream>
+#include <ostream>
+
 #include "raymath.h"
 #include "../Game.h"
 
@@ -36,12 +39,13 @@ void Particles::CreateParticles(ParticleEffect effect)
 
         Vector2 randomVariation = Vector2{GetRandomValue(-effect.impact_variety * 10.0f, effect.impact_variety * 10.0f) / 10.0f,
         GetRandomValue(-effect.impact_variety * 10.0f, effect.impact_variety * 10.0f) / 10.0f};
-        Vector2 randomVariationDirection = Vector2{GetRandomValue(-effect.direction_variety * 10.0f, effect.direction_variety * 10.0f) / 10.0f,
-        GetRandomValue(-effect.direction_variety * 10.0f, effect.direction_variety * 10.0f) / 10.0f};
+
+        float dirAngle = 180.0f - Vector2LineAngle({0,0}, effect.direction) * RAD2DEG;
+        dirAngle -= GetRandomValue(-effect.angle_variety * 10.0f, effect.angle_variety * 10.0f) / 10.0f;
+        effect.direction = Vector2Normalize(Vector2Rotate({0,0}, dirAngle));
 
         newParticle.position = Vector2Add(randomVariation, effect.impact);
         newParticle.color = ColorBrightness(effect.color, GetRandomValue(-effect.color_variety * 100.0f, effect.color_variety * 100.0f) / 100.0f);
-        newParticle.direction = Vector2Normalize(Vector2Add(randomVariationDirection, effect.direction));
         newParticle.lifetime = effect.lifetime + GetRandomValue(-effect.lifetime_variety * 10.0f, effect.lifetime_variety * 10.0f) / 10.0f;
         newParticle.velocity = effect.velocity + GetRandomValue(-effect.velocity_variety * 10.0f, effect.velocity_variety * 10.0f) / 10.0f;
         newParticle.size = effect.size + GetRandomValue(-effect.size_variety * 10.0f, effect.size_variety * 10.0f) / 10.0f;
@@ -89,8 +93,8 @@ void Particles::Update()
         DrawRectanglePro({p.position.x, p.position.y, p.size, p.size}, {p.size / 2.0f, p.size / 2.0f}, p.lifetime * RAD2DEG,
             ColorAlpha(p.color, natural_transparency));
         DrawCircleGradient(p.position.x, p.position.y, p.size * 1.1f,
-            ColorAlpha(p.color, natural_transparency / 3.0f),
-            ColorAlpha(p.color, natural_transparency / 6.0f));
+            ColorAlpha(p.color, natural_transparency / 6.0f),
+            ColorAlpha(p.color, natural_transparency / 12.0f));
 
         p.lifetime -= game->GetDeltaTime();
     }

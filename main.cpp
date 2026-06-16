@@ -25,6 +25,8 @@ void client() {
     InitAudioDevice();
     SetTargetFPS(120);
 
+    SetMasterVolume(1.0f);
+
     std::string ip = "";
     cout << "pls enter ip:prt ";
     cin >> ip;
@@ -46,6 +48,14 @@ void client() {
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(WHITE);
+
+        if (IsKeyPressed(KEY_M))
+        {
+            if (GetMasterVolume() <= 0.0f)
+                SetMasterVolume(1.0f);
+            else
+                SetMasterVolume(0.0f);
+        }
 
         game.Update();
 

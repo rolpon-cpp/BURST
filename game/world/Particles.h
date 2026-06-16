@@ -23,13 +23,14 @@ struct ParticleEffect
     float size = 0;
     Color color = BLANK;
 
-    float direction_variety = 0;
+    float angle_variety = 0;
     float impact_variety = 0;
     float size_variety = 0;
     float velocity_slowdown_variety = 0;
     float lifetime_variety = 0;
     float color_variety = 0;
     float velocity_variety = 0;
+
 };
 #pragma pack(pop)
 
@@ -44,7 +45,7 @@ struct Particle
     float lifetime = 0;
 };
 
-#define RESPAWN_PARTICLE_EFFECT ParticleEffect{20, {0,0}, {0,0}, 1.5f, 200.0f, 100.0f, 6.0f, GREEN, 200.0f, 25.0f, 2.0f, 25.0f, 1.25f, 0.25f, 50.0f};
+#define RESPAWN_PARTICLE_EFFECT ParticleEffect{20, {0,0}, {0,0}, 1.5f, 200.0f, 100.0f, 6.0f, {12, 232, 78, 255}, 360.0f, 25.0f, 2.0f, 25.0f, 1.25f, 0.25f, 50.0f};
 
 class Particles
 {
@@ -69,7 +70,7 @@ class Particles
         float velocity_slowdown = 0,
         float size = 0,
         Color color = BLANK,
-        float direction_variety = 0,
+        float angle_variety = 0,
         float impact_variety = 0,
         float size_variety = 0,
         float velocity_slowdown_variety = 0,
