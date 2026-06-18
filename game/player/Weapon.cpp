@@ -1,12 +1,12 @@
 //
-// Created by lalit on 5/20/2026.
+// Created by  on 5/20/2026.
 //
 
 #include "Weapon.h"
 
 #include <iostream>
 
-#include "../Game.h"
+#include "../core/Game.h"
 
 float LerpAngle(float current, float target, float t) {
     float diff = fmodf(target - current + 540.0f, 360.0f) - 180.0f;

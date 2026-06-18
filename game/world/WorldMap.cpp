@@ -1,5 +1,5 @@
 //
-// Created by lalit on 5/13/2026.
+// Created by  on 5/13/2026.
 //
 
 #include "WorldMap.h"
@@ -8,7 +8,7 @@
 
 #include "../../network/Utils.h"
 
-#include "../Game.h"
+#include "../core/Game.h"
 
 using namespace std;
 

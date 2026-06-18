@@ -1,5 +1,5 @@
 //
-// Created by lalit on 5/22/2026.
+// Created by  on 5/22/2026.
 //
 
 #ifndef BURST_PARTICLES_H

@@ -1,9 +1,9 @@
 //
-// Created by lalit on 11/5/2025.
+// Created by  on 11/5/2025.
 //
 
 #include "Sounds.h"
-#include "Game.h"
+#include "../core/Game.h"
 #include <filesystem>
 #include <iostream>
 #include <raymath.h>

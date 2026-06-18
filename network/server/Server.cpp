@@ -1,5 +1,5 @@
 //
-// Created by 7906200 on 11/14/2025.
+// Created by other_user on 11/14/2025.
 //
 
 #include "Server.h"
@@ -8,7 +8,7 @@
 #include "../Utils.h"
 #include "../../game/player/Player.h"
 #include "ServerEventActions.h"
-#include "../../game/Game.h"
+#include "../../game/core/Game.h"
 
 using namespace std;
 

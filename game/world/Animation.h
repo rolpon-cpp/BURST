@@ -1,12 +1,12 @@
 //
-// Created by lalit on 6/13/2026.
+// Created by  on 6/13/2026.
 //
 
 #ifndef BURST_ANIMATION_H
 #define BURST_ANIMATION_H
 #include <cstdint>
 
-#include "../Sounds.h"
+#include "Sounds.h"
 #include "Particles.h"
 
 class GameClient;

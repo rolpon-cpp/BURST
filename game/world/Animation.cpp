@@ -1,12 +1,12 @@
 //
-// Created by lalit on 6/13/2026.
+// Created by  on 6/13/2026.
 //
 
 #include "Animation.h"
 
 #include <iostream>
 
-#include "../Game.h"
+#include "../core/Game.h"
 
 Animator::Animator()
 {

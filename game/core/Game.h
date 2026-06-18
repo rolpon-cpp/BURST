@@ -1,18 +1,19 @@
 //
-// Created by lalit on 5/10/2026.
+// Created by  on 5/10/2026.
 //
 
 #ifndef BURST_GAME_H
 #define BURST_GAME_H
-#include "Resources.h"
-#include "Sounds.h"
-#include "../network/client/Client.h"
+#include "../res/ClientResources.h"
+#include "../world/Sounds.h"
+#include "../../network/client/Client.h"
 #include "UI.h"
-#include "player/Camera.h"
-#include "world/WorldMap.h"
-#include "../network/server/Server.h"
-#include "world/Animation.h"
-#include "world/Particles.h"
+#include "../player/Camera.h"
+#include "../world/WorldMap.h"
+#include "../../network/server/Server.h"
+#include "../res/ServerResources.h"
+#include "../world/Animation.h"
+#include "../world/Particles.h"
 
 class Game
 {
@@ -42,7 +43,7 @@ public:
     Particles MainParticles;
     Animator MainAnimator;
     Client MainClient;
-    Resources MainResources;
+    ClientResources MainResources;
     UI MainUI;
     GameClient();
     virtual ~GameClient();
@@ -56,6 +57,7 @@ class GameServer : public Game
 {
 public:
     Server MainServer;
+    ServerResources MainResources;
     GameServer();
     ~GameServer();
     void Start(int Port = 5000);

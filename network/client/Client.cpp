@@ -1,5 +1,5 @@
 //
-// Created by lalit on 11/16/2025.
+// Created by  on 11/16/2025.
 //
 
 #include "../../game_libs.h"
@@ -10,7 +10,7 @@
 #include "Client.h"
 #include "../Utils.h"
 #include "../Packet.h"
-#include "../../game/Game.h"
+#include "../../game/core/Game.h"
 #include "../../game/world/WorldMap.h"
 #include "../../game/player/Player.h"
 

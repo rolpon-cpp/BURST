@@ -1,10 +1,10 @@
 //
-// Created by lalit on 5/10/2026.
+// Created by  on 5/10/2026.
 //
 
 #include "Camera.h"
 
-#include "../Game.h"
+#include "../core/Game.h"
 
 BurstCamera::BurstCamera()
 {

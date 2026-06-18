@@ -1,11 +1,11 @@
 //
-// Created by lalit on 5/10/2026.
+// Created by  on 5/10/2026.
 //
 
 #ifndef BURST_RESOURCES_H
 #define BURST_RESOURCES_H
 
-#include "../game_libs.h"
+#include "../../game_libs.h"
 
 #include <unordered_map>
 #include <string>
@@ -14,7 +14,7 @@ using namespace std;
 
 class Game;
 
-class Resources
+class ClientResources
 {
 public:
     Game* game;
@@ -23,9 +23,9 @@ public:
 
     Shader DefaultShader;
 
-    Resources();
-    Resources(Game *game);
-    ~Resources();
+    ClientResources();
+    ClientResources(Game *game);
+    ~ClientResources();
 
     Texture2D& GetTexture(string texture_name);
     Shader& GetShader(string shader_name);

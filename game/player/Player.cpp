@@ -1,5 +1,5 @@
 //
-// Created by lalit on 11/27/2025.
+// Created by  on 11/27/2025.
 //
 
 #include "../../game_libs.h"
@@ -12,7 +12,7 @@
 #include <ostream>
 
 #include "raymath.h"
-#include "../Game.h"
+#include "../core/Game.h"
 #include "../../network/Utils.h"
 #include "../../network/client/Client.h"
 
@@ -399,9 +399,6 @@ void Player::Update()
             inventory.Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
         }
         //printf("rendering process 4\n");
-        string tex = "player2";
-        if (IsLocalPlayer())
-            tex = "player1";
         string playerName = "Player " + to_string(PlayerID);
         if (IsLocalPlayer())
             playerName = "You";

@@ -1,10 +1,10 @@
 //
-// Created by lalit on 5/19/2026.
+// Created by  on 5/19/2026.
 //
 
 #ifndef BURST_UI_H
 #define BURST_UI_H
-#include "../game_libs.h"
+#include "../../game_libs.h"
 
 class GameClient;
 

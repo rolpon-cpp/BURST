@@ -26,7 +26,7 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
 endif()
 
 # Dependencies
-#find_package(raylib CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(unofficial-enet CONFIG REQUIRED)
 add_executable(BURST main.cpp
         network/server/Server.cpp
@@ -36,10 +36,10 @@ add_executable(BURST main.cpp
         network/Packet.h
         network/client/ClientEventActions.h
         network/client/ClientEventActions.cpp
-        game/Game.cpp
-        game/Game.h
-        game/Resources.cpp
-        game/Resources.h
+        game/core/Game.cpp
+        game/core/Game.h
+        game/res/ClientResources.cpp
+        game/res/ClientResources.h
         game/player/Camera.cpp
         game/player/Camera.h
         game/player/Player.cpp
@@ -51,21 +51,28 @@ add_executable(BURST main.cpp
         game/world/WorldMap.cpp
         game/world/WorldMap.h
         game_libs.h
-        game/UI.cpp
-        game/UI.h
+        game/core/UI.cpp
+        game/core/UI.h
         game/player/Weapon.cpp
         game/player/Weapon.h
         game/world/Particles.cpp
         game/world/Particles.h
-        game/Sounds.h
-        game/Sounds.cpp
+        game/world/Sounds.h
+        game/world/Sounds.cpp
         game/world/Animation.cpp
-        game/world/Animation.h)
+        game/world/Animation.h
+        game/res/ServerResources.cpp
+        game/res/ServerResources.h
+        game/core/GameServer.cpp
+        game/core/GameClient.cpp
+        game/entity/Entity.cpp
+        game/entity/Entity.h)
 target_link_libraries(BURST PRIVATE raylib)
+target_link_libraries(BURST PRIVATE nlohmann_json)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)
 
 if (MINGW)
-    target_link_options(BouncingPlus PRIVATE
+    target_link_options(BURST PRIVATE
             -static
     )
 endif ()

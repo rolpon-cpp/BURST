@@ -1,56 +1,6 @@
-//
-// Created by lalit on 5/10/2026.
-//
-
 #include "Game.h"
-#include <iostream>
 #include <ostream>
-#include "world/WorldMap.h"
-#include "../network/Utils.h"
-
-Game::Game()
-{
-    IsClient = false;
-    MainMap = WorldMap(this);
-    DeltaTime = 0.0f;
-    LastTime = this->GetTime();
-}
-
-Game::~Game()
-{
-}
-
-double Game::GetTime()
-{
-    if (IsClient)
-        return static_cast<GameClient*>(this)->MainClient.GetServerTime();
-    return GetTimeUtils();
-}
-
-double Game::GetDeltaTime()
-{
-    return DeltaTime;
-}
-
-void Game::Start(string IPAddress, int Port)
-{
-}
-
-void Game::Stop()
-{
-    MainMap.ClearMap();
-}
-
-void Game::Update()
-{
-    DeltaTime = this->GetTime() - LastTime;
-    LastTime = this->GetTime();
-}
-
-void Game::Quit()
-{
-    Stop();
-}
+#include "../world/WorldMap.h"
 
 GameClient::GameClient() : Game()
 {
@@ -59,13 +9,17 @@ GameClient::GameClient() : Game()
     MainCamera = BurstCamera(this);
     MainPlayer = Player(0, 0, 350.0f, this);
     MainClient = Client(this);
-    MainResources = Resources(this);
+    MainResources = ClientResources(this);
     MainSounds = Sounds(this);
     MainAnimator = Animator(this);
     MainParticles = Particles(this);
     MainUI = UI(this);
 
     MainResources.Load();
+}
+
+GameClient::~GameClient()
+{
 }
 
 void GameClient::Start(string IPAddress, int Port)
@@ -124,49 +78,4 @@ void GameClient::Quit()
     MainParticles.Quit();
     MainAnimator.Quit();
     MainPlayer.Destroy();
-}
-
-GameServer::GameServer() : Game()
-{
-    IsClient = false;
-    MainServer = Server(this);
-}
-
-void GameServer::Start(int Port)
-{
-    Game::Start("", Port);
-    MainMap.GenerateMap(GetRandomValue(1000,5000));
-    MainServer.StartServer(Port);
-}
-
-void GameServer::Stop()
-{
-    Game::Stop();
-    MainServer.StopServer();
-}
-
-void GameServer::Update()
-{
-    Game::Update();
-    MainServer.UpdateServer();
-
-    for (auto &[id, peer] : MainServer.Players)
-    {
-        Player* plr = (Player*)peer->data;
-        plr->Update();
-    }
-}
-
-void GameServer::Quit()
-{
-    Stop();
-    Game::Quit();
-}
-
-GameClient::~GameClient()
-{
-}
-
-GameServer::~GameServer()
-{
 }

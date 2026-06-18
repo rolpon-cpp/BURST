@@ -1,28 +1,28 @@
 //
-// Created by lalit on 5/10/2026.
+// Created by  on 5/10/2026.
 //
 
-#include "Resources.h"
+#include "ClientResources.h"
 #include <iostream>
 
 #include "rlgl.h"
 
 using namespace std;
 
-Resources::Resources()
+ClientResources::ClientResources()
 {
 }
 
-Resources::~Resources()
+ClientResources::~ClientResources()
 {
 }
 
-Resources::Resources(Game* game)
+ClientResources::ClientResources(Game* game)
 {
     this->game = game;
 }
 
-void Resources::Load()
+void ClientResources::Load()
 {
     DefaultShader = Shader{rlGetShaderIdDefault(), rlGetShaderLocsDefault()};
     Unload();
@@ -47,7 +47,7 @@ void Resources::Load()
     }
 }
 
-void Resources::Unload()
+void ClientResources::Unload()
 {
     for (auto &[name, texture] : Textures)
         UnloadTexture(texture);
@@ -57,14 +57,14 @@ void Resources::Unload()
     Shaders.clear();
 }
 
-Texture2D& Resources::GetTexture(string texture_name)
+Texture2D& ClientResources::GetTexture(string texture_name)
 {
     if (!Textures.contains(texture_name))
         return Textures["placeholder"];
     return Textures[texture_name];
 }
 
-Shader& Resources::GetShader(string shader_name)
+Shader& ClientResources::GetShader(string shader_name)
 {
     if (!Shaders.contains(shader_name))
         return DefaultShader;

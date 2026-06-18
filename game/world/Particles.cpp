@@ -1,5 +1,5 @@
 //
-// Created by lalit on 5/22/2026.
+// Created by  on 5/22/2026.
 //
 
 #include "Particles.h"
@@ -8,7 +8,7 @@
 #include <ostream>
 
 #include "raymath.h"
-#include "../Game.h"
+#include "../core/Game.h"
 
 Particles::Particles()
 {
