@@ -26,7 +26,7 @@ Server::Server()
     game = nullptr;
 }
 
-Server::Server(Game* game)
+Server::Server(GameServer* game)
 {
     this->game = game;
 
@@ -101,7 +101,7 @@ void Server::PlayerTimeSync(ENetPeer* Peer)
 {
     Packet myPacket = {};
     myPacket.type = TIME_SYNC;
-    myPacket.timestamp = game->GetTime();
+    myPacket.timestamp = game->GetLocalTime();
     ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(Peer, 0, packet);
 }
@@ -161,18 +161,19 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
 {
     LatestPlayerID += 1;
     auto* newPlayer = new Player({
-        LatestPlayerID, GetSpawnLocation(), {0, 0}, {0, 0}, 0, 100.0f, 350.0f, WeaponState{}, game->GetTime()
+        LatestPlayerID, GetSpawnLocation(), {0, 0}, {0, 0}, 0, 100.0f, 350.0f, WeaponState{}, game->GetLocalTime()
     }, game);
     newPlayer->PlayerID = LatestPlayerID;
     newPlayer->LastState = newPlayer->CurrentState;
     newPlayer->LocalState = newPlayer->CurrentState;
+    newPlayer->inventory.GiveItem(((GameServer*)game)->MainResources.GetWeaponData("pistol"));
 
     Peer->data = newPlayer;
     Players[LatestPlayerID] = Peer;
 
     Packet myPacket = {};
     myPacket.type = PLAYER_CHAR_RESET;
-    myPacket.timestamp = game->GetTime();
+    myPacket.timestamp = game->GetLocalTime();
 
     memcpy(&myPacket.data, &newPlayer->CurrentState, sizeof(newPlayer->CurrentState));
 
@@ -184,7 +185,7 @@ void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
 {
     Packet myPacket = {};
     myPacket.type = PLAYER_JOIN;
-    myPacket.timestamp = game->GetTime();
+    myPacket.timestamp = game->GetLocalTime();
 
     PlayerJoin playerJoin = {0};
     playerJoin.id = static_cast<Player*>(NewPeer->data)->PlayerID;
@@ -199,7 +200,7 @@ void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
 {
     Packet myPacket;
     myPacket.type = PLAYER_LEFT;
-    myPacket.timestamp = game->GetTime();
+    myPacket.timestamp = game->GetLocalTime();
 
     PlayerLeft left = {0};
     left.id = static_cast<Player*>(OldPeer->data)->PlayerID;
@@ -276,8 +277,8 @@ void Server::HandleEvents()
 
                 memcpy(&packet, Event.packet->data, Event.packet->dataLength);
 
-                if (game->GetTime() - packet.timestamp >= 1.0f)
-                    packet.timestamp = game->GetTime();
+                if (game->GetLocalTime() - packet.timestamp >= 1.0f)
+                    packet.timestamp = game->GetLocalTime();
 
                 if (PacketEventActions.contains(packet.type))
                     PacketEventActions[packet.type](*this, packet, Event);
@@ -300,11 +301,11 @@ void Server::HandleTimeSync()
 {
     if (!Running)
         return;
-    if (game->GetTime() - LastSyncedTime >= 1)
+    if (game->GetLocalTime() - LastSyncedTime >= 1)
     {
         for (auto [id, peer] : Players)
             PlayerTimeSync(peer);
-        LastSyncedTime = game->GetTime();
+        LastSyncedTime = game->GetLocalTime();
     }
 }
 
@@ -312,7 +313,7 @@ void Server::HandlePlayerStates()
 {
     if (!Running)
         return;
-    if (game->GetTime() - LastUpdatedPlayers < 1.0f / 50.0f)
+    if (game->GetLocalTime() - LastUpdatedPlayers < 1.0f / 50.0f)
         return;
 
     for (auto [id, peer] : Players)
@@ -329,7 +330,7 @@ void Server::HandlePlayerStates()
         }
     }
 
-    LastUpdatedPlayers = game->GetTime();
+    LastUpdatedPlayers = game->GetLocalTime();
 
     enet_host_flush(Host);
 }

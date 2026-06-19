@@ -54,10 +54,10 @@ void UI::Update()
     Rectangle REC = {15, UIRenderTexture.texture.height - 15 - H, W, H};
     DrawRectangleRounded(REC, 0.2f, 5, ColorAlpha(BLUE, 0.5f));
 
-    string FINAL_STR = "DASH " + to_string((int)max((int) (((int)((1.0f - (game->GetTime() - game->MainPlayer.LastDashed)) * 10000.0f))/10.0f), 0)) + "ms";
+    string FINAL_STR = "DASH " + to_string((int)max((int) (((int)((1.0f - (game->GetLocalTime() - game->MainPlayer.LastMovementAttack)) * 10000.0f))/10.0f), 0)) + "ms";
     float TX_SIZE = MeasureText(FINAL_STR.c_str(), H - 24.0f);
 
-    DrawText(FINAL_STR.c_str(), REC.x + REC.width / 2 - TX_SIZE / 2, REC.y + REC.height / 2 - (H - 24.0f) / 2, H - 24.0f, (game->GetTime() - game->MainPlayer.LastDashed >= 1.0f ? GREEN : ColorBrightness(BLUE, -0.3f)));
+    DrawText(FINAL_STR.c_str(), REC.x + REC.width / 2 - TX_SIZE / 2, REC.y + REC.height / 2 - (H - 24.0f) / 2, H - 24.0f, (game->GetLocalTime() - game->MainPlayer.LastMovementAttack >= 1.0f ? GREEN : ColorBrightness(BLUE, -0.3f)));
     EndTextureMode();
 
     BeginShaderMode(game->MainResources.GetShader("vignette"));

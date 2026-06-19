@@ -22,6 +22,11 @@ GameClient::~GameClient()
 {
 }
 
+double GameClient::GetServerTime()
+{
+    return MainClient.GetServerTime();
+}
+
 void GameClient::Start(string IPAddress, int Port)
 {
     Game::Start(IPAddress, Port);

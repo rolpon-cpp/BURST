@@ -122,7 +122,7 @@ bool WorldMap::ChunkIsMarked(int x, int y)
 {
     for (MarkedChunk p : MarkedChunks)
     {
-        if (p.x == x && p.y == y && game->GetTime() - p.timestamp <= 10)
+        if (p.x == x && p.y == y && game->GetLocalTime() - p.timestamp <= 10)
             return true;
     }
     return false;
@@ -134,7 +134,7 @@ void WorldMap::MarkChunk(int x, int y)
     gc->MainClient.RequestChunk(Vector2{(float)x, (float)y});
     if (ChunkIsMarked(x,y))
         return;
-    MarkedChunks.push_back(MarkedChunk{x,y,game->GetTime()});
+    MarkedChunks.push_back(MarkedChunk{x,y,game->GetLocalTime()});
 }
 
 void WorldMap::UpdateChunk(int cx, int cy)
@@ -151,8 +151,8 @@ void WorldMap::UpdateChunk(int cx, int cy)
             if (*tile == 1)
             {
                 float sz = TILE_SIZE * 1.125f;
-                float offx = (float)cos((game->GetTime() + ((cx * CHUNK_SIZE) + x)) * 5.0f) * 2.0f;
-                float offy = (float)sin((game->GetTime() + ((cy * CHUNK_SIZE) + y)) * 5.0f) * 2.0f;
+                float offx = (float)cos((game->GetLocalTime() + ((cx * CHUNK_SIZE) + x)) * 5.0f) * 2.0f;
+                float offy = (float)sin((game->GetLocalTime() + ((cy * CHUNK_SIZE) + y)) * 5.0f) * 2.0f;
                 DrawRectangleRounded({
                     tileRect.x - (offx/3),
                     tileRect.y - (offy/3),
@@ -165,7 +165,7 @@ void WorldMap::UpdateChunk(int cx, int cy)
             } else if (*tile == 2)
             {
                 Rectangle c = tileRect;
-                float theSine = sin((game->GetTime() + x + y) * 0.8f);
+                float theSine = sin((game->GetLocalTime() + x + y) * 0.8f);
                 if (theSine >= 0.5f)
                 {
                     c.width *= (theSine/6.0f) + 1.0f;

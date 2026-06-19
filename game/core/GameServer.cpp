@@ -11,6 +11,8 @@ GameServer::GameServer() : Game()
     IsClient = false;
     MainServer = Server(this);
     MainResources = ServerResources(this);
+
+    MainResources.Load();
 }
 
 void GameServer::Start(int Port)
@@ -40,6 +42,7 @@ void GameServer::Update()
 
 void GameServer::Quit()
 {
+    MainResources.Unload();
     Stop();
     Game::Quit();
 }

@@ -28,7 +28,7 @@ ServerResources::~ServerResources()
 void ServerResources::Load()
 {
      unordered_map<std::string, WeaponData> NewWeapons;
-    std::string path = "assets/weapondata";
+    std::string path = "assets/weapons";
     for (const auto & entry : fs::directory_iterator(path)) {
         try
         {
@@ -44,8 +44,6 @@ void ServerResources::Load()
             nlohmann::json data = nlohmann::json::parse(g);
 
             WeaponData wep = {};
-            if (data.count("enemies_can_use") && data["enemies_can_use"].get<bool>())
-                EnemyWeaponNamesList.push_back(p);
 
             if (data.count("texture"))
             {
@@ -55,6 +53,16 @@ void ServerResources::Load()
                 }
                 string d = data["texture"].get<string>().substr(0, min(data["texture"].get<string>().size(), 32));
                 memcpy(wep.texture, d.c_str(), d.size());
+            }
+
+            if (data.count("sound"))
+            {
+                for (int i = 0; i < 32; i++)
+                {
+                    wep.sound[i] = 0;
+                }
+                string d = data["sound"].get<string>().substr(0, min(data["sound"].get<string>().size(), 32));
+                memcpy(wep.sound, d.c_str(), d.size());
             }
 
             if (data.count("type"))
@@ -79,9 +87,8 @@ void ServerResources::Load()
                 wep.range = data["range"].get<float>();
             if (data.count("intensity"))
                 wep.intensity = data["intensity"].get<float>();
-            if (data.count("spreadAngleRange"))
-                wep.spreadAngleRange = data["spreadAngleRange"].get<float>();
-
+            if (data.count("angle_range"))
+                wep.angle_range = data["angle_range"].get<float>();
             if (data.count("shots"))
                 wep.shots = data["shots"].get<int>();
             if (data.count("ammo"))
@@ -101,8 +108,15 @@ void ServerResources::Load()
     }
 }
 
+WeaponData ServerResources::GetWeaponData(std::string weapon)
+{
+    WeaponData wep{};
+    if (Weapons.contains(weapon))
+        wep = Weapons[weapon];
+    return wep;
+}
+
 void ServerResources::Unload()
 {
-    EnemyWeaponNamesList.clear();
     Weapons.clear();
 }

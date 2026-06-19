@@ -13,17 +13,20 @@ Game::Game()
     IsClient = false;
     MainMap = WorldMap(this);
     DeltaTime = 0.0f;
-    LastTime = this->GetTime();
+    LastTime = this->GetLocalTime();
 }
 
 Game::~Game()
 {
 }
 
-double Game::GetTime()
+double Game::GetLocalTime()
 {
-    if (IsClient)
-        return static_cast<GameClient*>(this)->MainClient.GetServerTime();
+    return GetTimeUtils();
+}
+
+double Game::GetServerTime()
+{
     return GetTimeUtils();
 }
 
@@ -43,8 +46,8 @@ void Game::Stop()
 
 void Game::Update()
 {
-    DeltaTime = this->GetTime() - LastTime;
-    LastTime = this->GetTime();
+    DeltaTime = this->GetLocalTime() - LastTime;
+    LastTime = this->GetLocalTime();
 }
 
 void Game::Quit()

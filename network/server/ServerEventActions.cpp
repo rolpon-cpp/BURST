@@ -31,8 +31,8 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
     PlayerToUpdate->inventory.EquipItem(PlayerToUpdate->CurrentState.weapon_state.inventoryIdx);
 
     // Timestamp anticheat check
-    if (abs(PlayerToUpdate->CurrentState.timestamp - OurServer.game->GetTime()) >= 1.0f)
-        PlayerToUpdate->CurrentState.timestamp = OurServer.game->GetTime();
+    if (abs(PlayerToUpdate->CurrentState.timestamp - OurServer.game->GetLocalTime()) >= 1.0f)
+        PlayerToUpdate->CurrentState.timestamp = OurServer.game->GetLocalTime();
 
     // Health anticheat check
     if (PlayerToUpdate->CurrentState.health <= 0.0f)
@@ -45,7 +45,7 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
         struct Packet myPacket = {};
         myPacket.type = PLAYER_CHAR_RESET;
-        myPacket.timestamp = OurServer.game->GetTime();
+        myPacket.timestamp = OurServer.game->GetLocalTime();
 
         memcpy(&myPacket.data, &PreviousPlayerState, sizeof(PreviousPlayerState));
 
@@ -59,7 +59,7 @@ void PlayerUpdateAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
             std::remove_if(
                 PlayerToUpdate->PreviousPlayerStates.begin(),
                 PlayerToUpdate->PreviousPlayerStates.end(),
-                [&OurServer](PlayerState& p) { return OurServer.game->GetTime() - p.timestamp >= 4.0f; }
+                [&OurServer](PlayerState& p) { return OurServer.game->GetLocalTime() - p.timestamp >= 4.0f; }
             ),
             PlayerToUpdate->PreviousPlayerStates.end()
         );
@@ -78,7 +78,7 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 
     struct Packet PacketData;
     PacketData.type = GET_CHUNK;
-    PacketData.timestamp = OurServer.game->GetTime();
+    PacketData.timestamp = OurServer.game->GetLocalTime();
     memset(&PacketData.data, 0, sizeof(PacketData.data));
 
     ChunkUpload PlayerChunkUpload{};
@@ -94,10 +94,10 @@ void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
     Player* AttackingPlayer = (Player*)Event.peer->data;
-    if (OurServer.game->GetTime() - AttackingPlayer->LastDashed < 0.8f)
+    if (OurServer.game->GetLocalTime() - AttackingPlayer->LastMovementAttack < 0.95f)
         return;
 
-    AttackingPlayer->LastDashed = OurServer.game->GetTime();
+    AttackingPlayer->LastMovementAttack = OurServer.game->GetLocalTime();
 
     PlayerMovementAttack atk;
     memcpy(&atk, &Packet.data, sizeof(PlayerMovementAttack));
@@ -105,8 +105,8 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
     PlayerState AttackingPlayerState = AttackingPlayer->GetPlayerState(Packet.timestamp);
 
     // Distance Anticheat check
-    if (Vector2Distance(AttackingPlayerState.position, atk.impact) >= 50)
-        atk.impact = AttackingPlayerState.position;
+    if (Vector2Distance(AttackingPlayerState.GetCenter(), atk.impact) >= 50)
+        atk.impact = AttackingPlayerState.GetCenter();
 
     // Health Anticheat check
     if (AttackingPlayerState.health <= 0.0f)
@@ -122,9 +122,26 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
         Player* VictimPlayer = (Player*) peer->data;
         PlayerState VictimPlayerState = VictimPlayer->GetPlayerState(Packet.timestamp);
 
-        if (Vector2Distance(VictimPlayerState.position, AttackingPlayerState.position)<=150)
+        if (Vector2Distance(VictimPlayerState.GetCenter(), atk.impact)<=50)
         {
+            // damage person
             VictimPlayer->CurrentState.health -= atk.damage;
+
+            // damage feedback
+            PlayerScoreFeedback feedback{};
+
+            feedback.impact = atk.impact;
+            feedback.pts = atk.damage * 2.5f;
+            feedback.timestamp = OurServer.game->GetLocalTime();
+            feedback.type = MOVEMENT;
+            feedback.clr[0] = ORANGE.r;
+            feedback.clr[1] = ORANGE.g;
+            feedback.clr[2] = ORANGE.b;
+
+            OurServer.SendPacket(Event.peer,
+                PLAYER_ATTACK_FEEDBACK, &feedback, sizeof(PlayerScoreFeedback));
+
+            // play sound to all
             AnimationEvent event;
             event.type = SoundAnimationEvent;
             event.use_position = false;
@@ -137,6 +154,8 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
                 1.0f,
             };
             OurServer.SendPacketToAll(ANIMATION, &event, sizeof(event), {AttackingPlayer->PlayerID});
+
+            // end loop
             break;
         }
     }
@@ -174,14 +193,11 @@ void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
 
         struct Packet myPacket = {};
         myPacket.type = PLAYER_CHAR_RESET;
-        myPacket.timestamp = OurServer.game->GetTime();
+        myPacket.timestamp = OurServer.game->GetLocalTime();
 
         memcpy(&myPacket.data, &RespawningPlayer->CurrentState, sizeof(RespawningPlayer->CurrentState));
 
-        AnimationEvent respawnAnimationEvent{};
-        respawnAnimationEvent.position = RespawningPlayer->CurrentState.position;
-        respawnAnimationEvent.use_position = true;
-        respawnAnimationEvent.type = ParticleAnimationEvent;
+        AnimationEvent respawnAnimationEvent = {ParticleAnimationEvent, true, RespawningPlayer->CurrentState.position, -1};
         respawnAnimationEvent.particle_effect = RESPAWN_PARTICLE_EFFECT;
         OurServer.SendPacketToAll(ANIMATION, &respawnAnimationEvent, sizeof(AnimationEvent));
 

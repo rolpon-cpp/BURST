@@ -115,3 +115,13 @@ void AnimationEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
 
     OurClient.game->MainAnimator.Animate(event);
 }
+
+void FeedbackEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    PlayerScoreFeedback feedback;
+    memcpy(&feedback, &Packet.data, sizeof(feedback));
+
+    OurClient.game->MainSounds.PlayGameSound("hit_feedback");
+    OurClient.game->MainPlayer.Points += feedback.pts;
+    OurClient.game->MainPlayer.Feedback.push_back(feedback);
+}

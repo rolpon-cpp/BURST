@@ -7,7 +7,6 @@
 
 
 #include "../../game_libs.h"
-
 #include <unordered_map>
 #include <string>
 
@@ -22,11 +21,12 @@ public:
     Game* game;
 
     std::unordered_map<std::string, WeaponData> Weapons;
-    std::vector<std::string> EnemyWeaponNamesList;
 
     ServerResources();
     ServerResources(Game *game);
     ~ServerResources();
+
+    WeaponData GetWeaponData(std::string weapon);
 
     void Load();
     void Unload();

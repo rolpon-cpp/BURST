@@ -52,6 +52,11 @@ bool DetectIllegalStates(PlayerState BaseState, PlayerState SuspectedState)
     return false;
 }
 
+Vector2 PlayerState::GetCenter()
+{
+    return {this->position.x + 18.0f, this->position.y + 18.0f};
+}
+
 Player::Player(float X, float Y, float Speed, Game* game)
 {
     //printf("creating player ?? (properties)\n");
@@ -63,18 +68,13 @@ Player::Player(float X, float Y, float Speed, Game* game)
     CurrentState.speed = Speed;
     CurrentState.timestamp = 0;
     DisplayHealth = 100.0f;
-    LastZoned = 0.0f;
-    LastDashed = 0;
+    LastMovementAttack = 0;
     LastState = CurrentState;
     LocalState = CurrentState;
+    DashCharge = 0.0f;
+    LastGhostPos = {0,0};
 
     inventory = Inventory(game, this);
-    if (!game->IsClient)
-    {
-        inventory.GiveItem(make_shared<ProjectileWeapon>(&inventory,WeaponData{
-            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.1f, 0.0f, 1, 100
-        }));
-    }
 }
 
 Player::Player(PlayerState State, Game* game)
@@ -87,16 +87,11 @@ Player::Player(PlayerState State, Game* game)
     LastState = CurrentState;
     LocalState = CurrentState;
     DisplayHealth = CurrentState.health;
-    LastDashed = 0;
-    LastZoned = 0.0f;
+    LastMovementAttack = 0;
+    DashCharge = 0.0f;
+    LastGhostPos = {0,0};
 
     inventory = Inventory(game, this);
-    if (!game->IsClient)
-    {
-        inventory.GiveItem(make_shared<ProjectileWeapon>(&inventory,WeaponData{
-            "pistol", PROJECTILE, 20.0f, 0.5f, 999.0f, 0.1f, 0.0f, 1, 100
-        }));
-    }
 }
 
 Player::Player()
@@ -194,7 +189,7 @@ Vector2 Player::ProcessInputs()
 {
     if (ZoneTarget == -1)
     {
-    Vector2 MyPlayerDirection = {0, 0};
+        Vector2 MyPlayerDirection = {0, 0};
 
         if (IsKeyDown(KEY_A))
             MyPlayerDirection.x -= 1;
@@ -204,15 +199,26 @@ Vector2 Player::ProcessInputs()
             MyPlayerDirection.y -= 1;
         if (IsKeyDown(KEY_S))
             MyPlayerDirection.y += 1;
-        if (IsKeyPressed(KEY_SPACE) && Vector2Distance({0, 0}, CurrentState.velocity) < 500 && ((GameClient*)game)->MainClient.GetServerTime() - LastDashed >= 1)
+        if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) && !IsDashing && ((GameClient*)game)->MainClient.GetServerTime() - LastMovementAttack >= 1)
         {
-            CurrentState.velocity = Vector2Normalize(
-                ((GameClient*)game)->MainCamera.GetWorldMousePos() - GetCenter()) * 2500.0f;
-            LastDashed = ((GameClient*)game)->MainClient.GetServerTime();
-            IsDashing = true;
-            DashedPlayerID = -1;
+            DashCharge += game->GetDeltaTime() * 1.05f;
+            if (DashCharge >= 1.0f)
+                DashCharge = 1.0f;
+            ((GameClient*)game)->MainCamera.ZoomCamera(2.05f);
+            if (IsMouseButtonDown(0) && DashCharge >= 0.3f)
+            {
+                CurrentState.velocity = Vector2Normalize(
+                ((GameClient*)game)->MainCamera.GetWorldMousePos() - GetCenter()) * 2500.0f * DashCharge;
+                LastMovementAttack = ((GameClient*)game)->MainClient.GetServerTime();
+                IsDashing = true;
+                DashCharge = 0.0f;
+                DashedPlayerID = -1;
+            }
+        } else
+        {
+            DashCharge = 0.0f;
         }
-        if (IsKeyPressed(KEY_F) && Vector2Distance({0, 0}, CurrentState.velocity) < 500 && game->GetTime() - LastZoned >= 1.0f)
+        if (IsKeyPressed(KEY_F) && !IsDashing && DashCharge <= 0.0f && game->GetLocalTime() - LastMovementAttack >= 1)
         {
             int32_t id = -1;
             for (auto &[plr_id, plr] : ((GameClient*)game)->MainClient.Players)
@@ -228,7 +234,7 @@ Vector2 Player::ProcessInputs()
             if (id != -1)
             {
                 ZoneTarget = id;
-                LastZoned = game->GetTime();
+                LastMovementAttack = game->GetLocalTime();
             }
         }
         MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
@@ -286,7 +292,7 @@ void Player::ProcessMovementAttacks(PlayerState* State)
                 sound_effect.set_properties(0);
                 ((GameClient*)game)->MainSounds.PlayGameSound(sound_effect);
 
-                ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
+                ((GameClient*)game)->MainClient.MovementAttack(State->GetCenter(), min(max(VelocityMagnitude / 150.0f, 0.0f), 20.0f));
                 DashedPlayerID = player.CurrentState.id;
                 ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
                 break;
@@ -318,7 +324,7 @@ void Player::ProcessMovementAttacks(PlayerState* State)
             ((GameClient*)game)->MainCamera.ShakeCamera(0.2f);
             ZoneTarget = -1;
         }
-        if (ZoneTarget != -1 && game->GetTime() - LastZoned >= 1.0f)
+        if (ZoneTarget != -1 && game->GetLocalTime() - LastMovementAttack >= 1.0f)
         {
             ZoneTarget = -1;
         }
@@ -387,9 +393,31 @@ void Player::Update()
     CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
     LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
 
+    if (IsDashing)
+    {
+        if (Vector2Distance(CurrentState.GetCenter(), LastGhostPos) >= 100.0f)
+        {
+            Ghosts.push_back(make_pair(CurrentState, game->GetLocalTime()));
+            LastGhostPos=CurrentState.GetCenter();
+        }
+    }
+
     //printf("player movement process 3\n");
     if (IsLocalPlayer()) // checks if we're the local player
         MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, game->GetDeltaTime());
+
+    std::erase_if(Ghosts, [this](std::pair<PlayerState,double> Ghost)
+    {
+       return (game->GetLocalTime() - Ghost.second) >= 0.5f;
+    });
+    for (auto &[state, time]: Ghosts)
+    {
+        float prog = (game->GetLocalTime() - time) / 0.5f;
+        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"),
+            {0, 0, 72.0f, 72.0f},
+            {state.position.x + 18.0f, state.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, state.rotation,
+            ColorAlpha(WHITE, prog > 0.8f ? ((1.0f - prog) / 0.2f) * 0.5f : 0.5f));
+    }
 
     if (game->IsClient)
     {
@@ -410,7 +438,7 @@ void Player::Update()
         DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
         DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
-        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture(tex), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
     }
 
     //std::cout << "DONE PROCESSING PLAYER!" << "\n" << std::flush;
@@ -420,4 +448,5 @@ void Player::Destroy()
 {
     //printf("destroying player %i\n", PlayerID);
     inventory.Destroy();
+    Ghosts.clear();
 }

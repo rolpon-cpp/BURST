@@ -9,6 +9,21 @@
 #include "raymath.h"
 #include "Weapon.h"
 
+enum FeedbackType
+{
+    WEAPON, MOVEMENT
+};
+
+#pragma pack(push, 1)
+struct PlayerScoreFeedback {
+    float pts = 0;
+    FeedbackType type;
+    Vector2 impact{0, 0};
+    uint8_t clr[3] {0};
+    double timestamp = 0;
+};
+#pragma pack(pop)
+
 #pragma pack(push, 1)
 struct PlayerJoin {
     int32_t id = 0;
@@ -49,6 +64,7 @@ struct PlayerState {
     float speed = 0;
     WeaponState weapon_state = WeaponState{};
     double timestamp = 0;
+    Vector2 GetCenter();
 };
 #pragma pack(pop)
 
@@ -72,13 +88,19 @@ public:
     std::vector<PlayerState> PreviousPlayerStates;
 
     int32_t DashedPlayerID = -1;
-    double LastDashed = 0.0f;
+    float DashCharge = 0.0f;
+
     bool IsDashing = false;
-
     int32_t ZoneTarget = -1;
-    double LastZoned = 0.0f;
+    double LastMovementAttack = 0.0f;
 
-    double DisplayHealth;
+    Vector2 LastGhostPos{0,0};
+    std::vector<std::pair<PlayerState,double>> Ghosts;
+
+    double DisplayHealth = 0;
+
+    float Points;
+    std::vector<PlayerScoreFeedback> Feedback;
 
     Player();
     Player(float X, float Y, float Speed, Game* game);

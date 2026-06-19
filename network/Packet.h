@@ -8,6 +8,7 @@
 enum PacketType {
     PLAYER_WEAPON_ATTACK,
     PLAYER_MOVEMENT_ATTACK,
+    PLAYER_ATTACK_FEEDBACK,
 
     PLAYER_UPDATE,
     PLAYER_CHAR_RESET,
@@ -21,7 +22,6 @@ enum PacketType {
     ANIMATION,
     TIME_SYNC,
     GET_CHUNK,
-
 };
 
 #pragma pack(push, 1)

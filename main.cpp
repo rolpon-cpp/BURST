@@ -4,7 +4,7 @@
 #include <sstream>
 
 #include "vector"
-#include "game/Game.h"
+#include "game/core/Game.h"
 #include "network/Utils.h"
 
 using namespace std;

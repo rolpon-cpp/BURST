@@ -12,7 +12,7 @@
 #include "../../game/player/Player.h"
 
 using namespace std;
-class Game;
+class GameServer;
 
 class Server
 {
@@ -37,12 +37,12 @@ class Server
     void PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify);
 
 public:
-    Game* game = nullptr;
+    GameServer* game = nullptr;
     unordered_map<int32_t, ENetPeer*> Players;
     ENetHost* Host = nullptr;
     bool Running = false;
     Server();
-    Server(Game* game);
+    Server(GameServer* game);
     ~Server();
     void Reset();
     void StartServer(int Port = 5000, int MaxClients = 32);

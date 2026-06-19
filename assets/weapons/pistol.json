@@ -1,0 +1,12 @@
+{
+  "type": "projectile",
+  "texture": "pistol",
+  "sound": "pistol_shoot",
+  "damage": 10,
+  "cooldown": 0.5,
+  "range": 350,
+  "intensity": 0.4,
+  "angle_range": 2,
+  "shots": 1,
+  "ammo": 15
+}

@@ -64,9 +64,7 @@ add_executable(BURST main.cpp
         game/res/ServerResources.cpp
         game/res/ServerResources.h
         game/core/GameServer.cpp
-        game/core/GameClient.cpp
-        game/entity/Entity.cpp
-        game/entity/Entity.h)
+        game/core/GameClient.cpp)
 target_link_libraries(BURST PRIVATE raylib)
 target_link_libraries(BURST PRIVATE nlohmann_json)
 target_link_libraries(BURST PRIVATE unofficial::enet::enet winmm ws2_32)

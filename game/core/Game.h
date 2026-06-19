@@ -27,7 +27,8 @@ public:
     virtual ~Game();
 
     virtual void Start(string IPAddress = "127.0.0.1", int Port = 5000);
-    virtual double GetTime();
+    virtual double GetLocalTime();
+    virtual double GetServerTime();
     virtual double GetDeltaTime();
     virtual void Stop();
     virtual void Update();
@@ -47,6 +48,7 @@ public:
     UI MainUI;
     GameClient();
     virtual ~GameClient();
+    double GetServerTime() override;
     void Start(string IPAddress = "127.0.0.1", int Port = 5000);
     void Stop();
     void Update();

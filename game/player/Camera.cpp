@@ -19,6 +19,7 @@ BurstCamera::BurstCamera(GameClient* game)
     this->NextCameraShakeOffsetChange = 0.0f;
     this->CameraPos = {0, 0};
     this->CameraZoom = 1.0f;
+    this->CameraShakeIntensity = 0;
     this->CameraShakeOffset = {0, 0};
 }
 
@@ -47,13 +48,14 @@ void BurstCamera::ShakeCamera(float Intensity)
     CameraShakes = max(min(Intensity / 0.125f, 1), 20);
     CameraShakeOffset = {(float)GetRandomValue(-70 * Intensity, 70 * Intensity), (float)GetRandomValue(-70 * Intensity, 70 * Intensity)};
     NextCameraShakeOffsetChange = game->MainClient.GetServerTime() + 0.01f;
+    CameraShakeIntensity = Intensity;
 }
 
 void BurstCamera::Update()
 {
     if (CameraShakes > 0 && game->MainClient.GetServerTime() >= NextCameraShakeOffsetChange)
     {
-        CameraShakeOffset = {(float)GetRandomValue(-50, 50), (float)GetRandomValue(-50, 50)};
+        CameraShakeOffset = {(float)GetRandomValue(-70 * CameraShakeIntensity, 70 * CameraShakeIntensity), (float)GetRandomValue(-70 * CameraShakeIntensity, 70 * CameraShakeIntensity)};
 
         NextCameraShakeOffsetChange = game->MainClient.GetServerTime() + 0.005f;
         CameraShakes--;

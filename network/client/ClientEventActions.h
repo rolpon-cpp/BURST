@@ -18,5 +18,6 @@ void GetChunkAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void ServerPropertiesUpdateAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void PlayerCharacterResetAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void AnimationEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
+void FeedbackEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 
 #endif //BURST_EVENTACTIONS_H

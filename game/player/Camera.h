@@ -16,6 +16,8 @@ class BurstCamera
     int CameraShakes;
     double NextCameraShakeOffsetChange;
     Vector2 CameraShakeOffset;
+    float CameraShakeIntensity;
+
     bool IsZoomingCamera = false;
 
     Camera2D RaylibCamera;

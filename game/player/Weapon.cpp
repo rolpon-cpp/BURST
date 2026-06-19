@@ -81,33 +81,72 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
         return;
     Weapon::Attack(attackInfo);
 
+    AnimationEvent event;
+    event.type = SoundAnimationEvent;
+    event.use_position = false;
+    event.player_id = this->inventory->Owner->PlayerID;
+    event.position = this->inventory->Owner->GetCenter();
+    event.sound_effect =
+    {
+        "",
+        1.0f,
+        1.0f,
+    };
+    memcpy(&event.sound_effect,this->WeaponData.sound,32);
+
     if (inventory->game->IsClient)
     {
         GameClient* game_client = (GameClient*) inventory->game;
-        game_client->MainCamera.ShakeCamera(WeaponData.intensity);
         game_client->MainClient.AttackWithWeapon(attackInfo);
+        game_client->MainAnimator.Animate(event);
     } else
     {
         GameServer* game_server = (GameServer*) inventory->game;
         WorldMap& game_map = game_server->MainMap;
 
+        game_server->MainServer.SendPacketToAll(ANIMATION, &event, sizeof(event), {this->inventory->Owner->PlayerID});
+
         for (int i = 0; i < WeaponData.shots; i++)
         {
             float Angle = 180.0f - Vector2LineAngle(attackInfo.origin, attackInfo.target) * RAD2DEG;
-            if (WeaponData.spreadAngleRange > 0.0f)
-                Angle += GetRandomValue(-WeaponData.spreadAngleRange * 5.0f, WeaponData.spreadAngleRange * 5.0f) / 10.0f;
+            if (WeaponData.angle_range > 0)
+            {
+                Angle -= WeaponData.angle_range / 2.0f;
+                Angle += (WeaponData.angle_range / WeaponData.shots) / 2.0f;
+            }
 
             for (auto &[id,peer] : game_server->MainServer.Players)
             {
                 Player* plr = (Player*) peer->data;
+                PlayerState VictimPlayerState = plr->GetPlayerState(attackInfo.timestamp);
+
                 if (plr == this->inventory->Owner)
                     continue;
-                if (Vector2Distance(attackInfo.origin, plr->GetCenter()) >= WeaponData.range)
+                if (Vector2Distance(attackInfo.origin, VictimPlayerState.GetCenter()) >= WeaponData.range)
                     continue;
-                RayCastResult result = game_map.CastRay(attackInfo.origin, Angle, Vector2Distance(attackInfo.origin, plr->GetCenter()));
+                RayCastResult result = game_map.CastRay(attackInfo.origin, Angle, Vector2Distance(attackInfo.origin, VictimPlayerState.GetCenter()));
 
-                if (result.hitTile == nullptr && Vector2Distance(result.hitPositionWorldSpace, plr->GetCenter()) <= 25.45f)
+                if (result.hitTile == nullptr && Vector2Distance(result.hitPositionWorldSpace, VictimPlayerState.GetCenter()) <= 25.45f)
+                {
                     plr->CurrentState.health -= WeaponData.damage;
+
+                    PlayerScoreFeedback feedback{};
+
+                    feedback.impact = result.hitPositionWorldSpace;
+                    feedback.pts = WeaponData.damage * 1.5f;
+                    feedback.timestamp = game_server->GetServerTime();
+                    feedback.type = WEAPON;
+                    feedback.clr[0] = GREEN.r;
+                    feedback.clr[1] = GREEN.g;
+                    feedback.clr[2] = GREEN.b;
+
+                    this->inventory->Owner->Feedback.push_back(feedback);
+                    this->inventory->Owner->Points += feedback.pts;
+                    game_server->MainServer.SendPacket(game_server->MainServer.Players[this->inventory->Owner->PlayerID],
+                        PLAYER_ATTACK_FEEDBACK, &feedback,sizeof(PlayerScoreFeedback));
+
+                    break;
+                }
             }
         }
     }
@@ -173,13 +212,25 @@ void Inventory::SetItem(std::shared_ptr<Weapon> newWeapon, int Idx)
     Weapons[Idx] = std::move(newWeapon);
 }
 
+void Inventory::GiveItem(WeaponData newWeaponData)
+{
+    for (int i = 0; i < INVENTORY_SIZE; i++)
+    {
+        if (Weapons[i] == nullptr)
+        {
+            SetItem(newWeaponData, i);
+            break;
+        }
+    }
+}
+
 void Inventory::GiveItem(std::shared_ptr<Weapon> newWeapon)
 {
     for (int i = 0; i < INVENTORY_SIZE; i++)
     {
         if (Weapons[i] == nullptr)
         {
-            Weapons[i] = newWeapon;
+            SetItem(newWeapon,i);
             break;
         }
     }
@@ -263,12 +314,15 @@ void Inventory::Update()
         {
             if (Owner->CurrentState.health > 0)
             {
-                if (IsKeyPressed(KEY_ONE))
-                    EquipItem(0);
-                if (IsKeyPressed(KEY_TWO))
-                    EquipItem(1);
-                if (IsKeyPressed(KEY_THREE))
-                    EquipItem(2);
+                if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))
+                {
+                    if (IsKeyPressed(KEY_ONE))
+                        EquipItem(0);
+                    if (IsKeyPressed(KEY_TWO))
+                        EquipItem(1);
+                    if (IsKeyPressed(KEY_THREE))
+                        EquipItem(2);
+                }
             } else
             {
                 UnequipItem();
@@ -276,7 +330,7 @@ void Inventory::Update()
             }
         }
 
-        std::string c = Owner->CurrentState.weapon_state.texture;
+        std::string c = string(reinterpret_cast<char*>(Owner->CurrentState.weapon_state.texture));
 
         if (!c.empty())
         {
@@ -290,7 +344,7 @@ void Inventory::Update()
             };
 
             Texture2D& g = game_c->MainResources.GetTexture(c);
-            DrawTexturePro(g, {0, 0, (float) g.width, (float) g.height}, {
+            DrawTexturePro(g, {0, 0, (float) g.width, (float) g.height * (abs(WeaponRenderRot) > 90.0f ? -1.0f : 1.0f)}, {
                 Owner->GetCenter().x - offset.x, Owner->GetCenter().y - offset.y,
                 (float)g.width * 3.0f, (float)g.height * 3.0f,
             }, {g.width * 1.5f, g.height * 1.5f}, WeaponRenderRot, WHITE);

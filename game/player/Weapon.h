@@ -29,7 +29,7 @@ struct WeaponAttack
 struct WeaponState
 {
     WeaponType type = NONE;
-    char texture[32] = {};
+    uint8_t texture[32] = {};
     int inventoryIdx = -1;
     bool animating = false;
 };
@@ -38,13 +38,14 @@ struct WeaponState
 #pragma pack(push, 1)
 struct WeaponData
 {
-    char texture[32] = {};
+    uint8_t texture[32] = {};
+    uint8_t sound[32] = {};
     WeaponType type = NONE;
     float damage = 0.0f;
     float cooldown = 0.0f;
     float range = 0.0f;
     float intensity = 0.0f;
-    float spreadAngleRange = 0.0f;
+    float angle_range = 0.0f;
     int shots = 0;
     int ammo = 0;
 };
@@ -101,11 +102,16 @@ public:
     ~Inventory();
 
     bool IsHoldingItem();
+
     void SetItem(std::shared_ptr<Weapon> newWeapon, int Idx);
     void SetItem(WeaponData newWeaponData, int Idx);
+
     void GiveItem(std::shared_ptr<Weapon> newWeapon);
+    void GiveItem(WeaponData newWeaponData);
+
     void DropItem(int Idx);
     void DropItem();
+
     void EquipItem(int Idx);
     void UnequipItem();
 

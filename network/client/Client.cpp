@@ -145,6 +145,7 @@ void Client::Reset()
     EventActions[PLAYER_SERV_PROP_UPDATE] = &ServerPropertiesUpdateAction;
     EventActions[PLAYER_CHAR_RESET] = &PlayerCharacterResetAction;
     EventActions[ANIMATION] = &AnimationEventAction;
+    EventActions[PLAYER_ATTACK_FEEDBACK] = &FeedbackEventAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
@@ -222,7 +223,7 @@ double Client::GetServerTime()
 
 void Client::UpdateState(PlayerState& State)
 {
-    if (Host != nullptr && Peer != nullptr && game->GetTime() - LastUpdatedState >= 1 / 50.0f)
+    if (Host != nullptr && Peer != nullptr && game->GetLocalTime() - LastUpdatedState >= 1 / 50.0f)
     {
         Packet myPacket = {};
         myPacket.timestamp = State.timestamp;
@@ -231,7 +232,7 @@ void Client::UpdateState(PlayerState& State)
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
-        LastUpdatedState = game->GetTime();
+        LastUpdatedState = game->GetLocalTime();
     }
 }
 
@@ -273,7 +274,7 @@ void Client::Respawn()
 {
     if (Host != nullptr && Peer != nullptr)
     {
-        if (game->GetTime() - LastRespawned < 5.0f)
+        if (game->GetLocalTime() - LastRespawned < 5.0f)
             return;
         Packet myPacket = {};
         myPacket.timestamp = GetServerTime();
@@ -282,6 +283,6 @@ void Client::Respawn()
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
-        LastRespawned = game->GetTime();
+        LastRespawned = game->GetLocalTime();
     }
 }
