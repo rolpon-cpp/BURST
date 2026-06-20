@@ -383,50 +383,49 @@ void Player::Update()
 {
     inventory.Owner = this;
     inventory.game = game;
-    //printf("processing player! %i\n",PlayerID);
-    //cout << this << "\n" << std::flush;
 
-    //printf("inventory process 1\n");
     inventory.Update();
 
-    //printf("health limit process 2\n");
     CurrentState.health = max(min(CurrentState.health, 100.0f), 0.0f);
     LocalState.health = max(min(LocalState.health, 100.0f), 0.0f);
 
-    if (IsDashing)
-    {
-        if (Vector2Distance(CurrentState.GetCenter(), LastGhostPos) >= 100.0f)
-        {
-            Ghosts.push_back(make_pair(CurrentState, game->GetLocalTime()));
-            LastGhostPos=CurrentState.GetCenter();
-        }
-    }
-
-    //printf("player movement process 3\n");
     if (IsLocalPlayer()) // checks if we're the local player
         MovePlayer(CurrentState.health > 0 ? ProcessInputs() : Vector2{0, 0}, game->GetDeltaTime());
 
-    std::erase_if(Ghosts, [this](std::pair<PlayerState,double> Ghost)
-    {
-       return (game->GetLocalTime() - Ghost.second) >= 0.5f;
-    });
-    for (auto &[state, time]: Ghosts)
-    {
-        float prog = (game->GetLocalTime() - time) / 0.5f;
-        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"),
-            {0, 0, 72.0f, 72.0f},
-            {state.position.x + 18.0f, state.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, state.rotation,
-            ColorAlpha(WHITE, prog > 0.8f ? ((1.0f - prog) / 0.2f) * 0.5f : 0.5f));
-    }
-
     if (game->IsClient)
     {
-        //cout << inventory.EquippedItemIdx << endl;
+
+        if (Vector2Distance({0,0},LocalState.velocity) >= 500.0f)
+        {
+            if (Vector2Distance(LocalState.GetCenter(), LastGhostPos) >= 100.0f)
+            {
+                PlayerState e = LocalState;
+                if (Ghosts.size() > 0)
+                {
+                    e.rotation = Ghosts[Ghosts.size() - 1].first.rotation;
+                }
+                Ghosts.push_back(make_pair(e, game->GetLocalTime()));
+                LastGhostPos=LocalState.GetCenter();
+            }
+        }
+        std::erase_if(Ghosts, [this](std::pair<PlayerState,double> Ghost)
+        {
+           return (game->GetLocalTime() - Ghost.second) >= 0.1f;
+        });
+        for (auto &[state, time]: Ghosts)
+        {
+            float prog = (game->GetLocalTime() - time) / 0.1f;
+            DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"),
+                {0, 0, 72.0f, 72.0f},
+                {state.position.x + 18.0f, state.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, state.rotation,
+                ColorAlpha(WHITE, prog > 0.8f ? ((1.0f - prog) / 0.2f) * 0.25f : 0.25f));
+        }
+
         if (IsMouseButtonPressed(0) && IsLocalPlayer() && CurrentState.health > 0)
         {
             inventory.Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
         }
-        //printf("rendering process 4\n");
+
         string playerName = "Player " + to_string(PlayerID);
         if (IsLocalPlayer())
             playerName = "You";

@@ -166,7 +166,7 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
     newPlayer->PlayerID = LatestPlayerID;
     newPlayer->LastState = newPlayer->CurrentState;
     newPlayer->LocalState = newPlayer->CurrentState;
-    newPlayer->inventory.GiveItem(((GameServer*)game)->MainResources.GetWeaponData("pistol"));
+    newPlayer->inventory.GiveItem(game->MainResources.GetWeaponData("pistol"));
 
     Peer->data = newPlayer;
     Players[LatestPlayerID] = Peer;

@@ -3,7 +3,7 @@
   "texture": "pistol",
   "sound": "pistol_shoot",
   "damage": 10,
-  "cooldown": 0.5,
+  "cooldown": 3,
   "range": 350,
   "intensity": 0.4,
   "angle_range": 2,

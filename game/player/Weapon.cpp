@@ -45,12 +45,15 @@ void Weapon::Attack(WeaponAttack attackInfo)
 
 void Weapon::Update()
 {
-    if (CooldownState > 0.0f)
-        CooldownState -= inventory->game->GetDeltaTime();
-
-    std::string c = to_string(*WeaponData.texture);
-
-    //cout << CooldownState<< "\n" << flush;
+    cout << "RUNNING WEAPON UPD\n";
+    if (this->CooldownState > 0.0f)
+    {
+        this->CooldownState -= inventory->game->GetDeltaTime();
+        cout <<"COOL. DOWN! " << CooldownState << "\n";
+    } else
+    {
+        cout << "NO. C00L. DOWN. " << CooldownState << "\n";
+    }
 }
 
 ProjectileWeapon::ProjectileWeapon()
@@ -77,8 +80,10 @@ bool ProjectileWeapon::CanAttack()
 
 void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 {
-    if (!CanAttack())
+    if (!this->CanAttack())
         return;
+
+    cout << "ATTACKING! with Cooldown of " << CooldownState << "\n";
     Weapon::Attack(attackInfo);
 
     AnimationEvent event;
@@ -156,6 +161,7 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 
 void ProjectileWeapon::Update()
 {
+    cout << "RUNNING PROJ WEAPON UPD\n";
     Weapon::Update();
 }
 
@@ -314,7 +320,7 @@ void Inventory::Update()
         {
             if (Owner->CurrentState.health > 0)
             {
-                if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))
+                if (!IsKeyDown(KEY_LEFT_SHIFT) && !IsKeyDown(KEY_RIGHT_SHIFT))
                 {
                     if (IsKeyPressed(KEY_ONE))
                         EquipItem(0);
@@ -351,9 +357,10 @@ void Inventory::Update()
         }
     }
 
-    //printf("weapons update process 2\n");
+    cout << "AKAGE " << EquippedItemIdx << "\n";
     if (EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE && Weapons[EquippedItemIdx] != nullptr)
     {
+        cout << "MAKE, IT, TUMBLE!\n";
         Weapons[EquippedItemIdx]->inventory = this;
         Weapons[EquippedItemIdx]->Update();
     }

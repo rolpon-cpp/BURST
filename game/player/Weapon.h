@@ -79,7 +79,7 @@ public:
     ProjectileWeapon();
     ProjectileWeapon(Inventory* inventory, struct WeaponData weaponData);
     ~ProjectileWeapon();
-    bool CanAttack();
+    bool CanAttack() override;
     void Attack(WeaponAttack attackInfo) override;
     void Update() override;
 };
