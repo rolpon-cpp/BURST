@@ -204,7 +204,10 @@ Vector2 Player::ProcessInputs()
             DashCharge += game->GetDeltaTime() * 1.05f;
             if (DashCharge >= 1.0f)
                 DashCharge = 1.0f;
-            ((GameClient*)game)->MainCamera.ZoomCamera(2.05f);
+            ((GameClient*)game)->MainCamera.ZoomCamera(1.45f);
+
+
+
             if (IsMouseButtonDown(0) && DashCharge >= 0.3f)
             {
                 CurrentState.velocity = Vector2Normalize(
@@ -352,12 +355,18 @@ void Player::ProcessDirection(PlayerState* State, float Delta, int Steps)
 
         Rectangle xCheck = {State->position.x + DeltaX, State->position.y, 36.0f, 36.0f};
         if (game->MainMap.CollisionCheck(xCheck))
+        {
             DeltaX = 0.0f;
+            State->velocity.x = 0.0f;
+        }
         State->position.x += DeltaX;
 
         Rectangle yCheck = {State->position.x, State->position.y + DeltaY, 36.0f, 36.0f};
         if (game->MainMap.CollisionCheck(yCheck))
+        {
             DeltaY = 0.0f;
+            State->velocity.y = 0.0f;
+        }
         State->position.y += DeltaY;
     }
 }
@@ -394,10 +403,9 @@ void Player::Update()
 
     if (game->IsClient)
     {
-
         if (Vector2Distance({0,0},LocalState.velocity) >= 500.0f)
         {
-            if (Vector2Distance(LocalState.GetCenter(), LastGhostPos) >= 100.0f)
+            if (Vector2Distance(LocalState.GetCenter(), LastGhostPos) >= 10.0f)
             {
                 PlayerState e = LocalState;
                 if (Ghosts.size() > 0)
@@ -410,20 +418,15 @@ void Player::Update()
         }
         std::erase_if(Ghosts, [this](std::pair<PlayerState,double> Ghost)
         {
-           return (game->GetLocalTime() - Ghost.second) >= 0.1f;
+           return (game->GetLocalTime() - Ghost.second) >= 0.075f;
         });
         for (auto &[state, time]: Ghosts)
         {
-            float prog = (game->GetLocalTime() - time) / 0.1f;
+            float prog = (game->GetLocalTime() - time) / 0.075f;
             DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"),
                 {0, 0, 72.0f, 72.0f},
                 {state.position.x + 18.0f, state.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, state.rotation,
-                ColorAlpha(WHITE, prog > 0.8f ? ((1.0f - prog) / 0.2f) * 0.25f : 0.25f));
-        }
-
-        if (IsMouseButtonPressed(0) && IsLocalPlayer() && CurrentState.health > 0)
-        {
-            inventory.Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
+                ColorAlpha(WHITE, prog * 0.3f));
         }
 
         string playerName = "Player " + to_string(PlayerID);

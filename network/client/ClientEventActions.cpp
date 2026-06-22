@@ -125,3 +125,18 @@ void FeedbackEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
     OurClient.game->MainPlayer.Points += feedback.pts;
     OurClient.game->MainPlayer.Feedback.push_back(feedback);
 }
+
+void BulletSpawnEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    BulletData bd;
+    memcpy(&bd, &Packet.data, sizeof(bd));
+    OurClient.game->AddBullet(bd);
+}
+
+void BulletDespawnEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    BulletDespawn bd;
+    memcpy(&bd, &Packet.data, sizeof(bd));
+    if (OurClient.game->Bullets.contains(bd.id))
+        OurClient.game->Bullets.erase(bd.id);
+}

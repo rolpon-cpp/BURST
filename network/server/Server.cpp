@@ -69,6 +69,7 @@ void Server::Reset()
     PacketEventActions[GET_CHUNK] = &GetChunkAction;
     PacketEventActions[PLAYER_WEAPON_ATTACK] = &PlayerWeaponAttackAction;
     PacketEventActions[PLAYER_RESPAWN_REQ] = &PlayerRespawnRequestAction;
+    PacketEventActions[PLAYER_WEAPON_RELOAD] = &PlayerReloadRequestAction;
 }
 
 void Server::StartServer(int Port, int MaxClients)

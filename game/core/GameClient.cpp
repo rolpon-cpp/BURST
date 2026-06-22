@@ -47,9 +47,9 @@ void GameClient::Stop()
 
 void GameClient::Update()
 {
-    Game::Update();
-
     MainCamera.Start();
+
+    Game::Update();
 
     MainMap.Update();
 

@@ -47,6 +47,22 @@ void GameServer::Quit()
     Game::Quit();
 }
 
+void GameServer::AddBullet(Bullet b)
+{
+    b.MyBulletData.id = next_bullet_id;
+    b.MyBulletData.timestamp = GetServerTime();
+    MainServer.SendPacketToAll(BULLET_SPAWN,&b.MyBulletData,sizeof(b));
+    Game::AddBullet(b);
+}
+
+void GameServer::AddBullet(BulletData bd)
+{
+    bd.id = next_bullet_id;
+    bd.timestamp = GetServerTime();
+    MainServer.SendPacketToAll(BULLET_SPAWN,&bd,sizeof(bd));
+    Game::AddBullet(bd);
+}
+
 GameServer::~GameServer()
 {
 }

@@ -49,6 +49,7 @@ public:
     void RequestChunk(Vector2 Position);
     void AttackWithWeapon(WeaponAttack Attack);
     void MovementAttack(Vector2 ImpactPoint, float Damage);
+    void ReloadWeapon();
     void Respawn();
     double GetServerTime();
 };

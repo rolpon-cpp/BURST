@@ -146,6 +146,8 @@ void Client::Reset()
     EventActions[PLAYER_CHAR_RESET] = &PlayerCharacterResetAction;
     EventActions[ANIMATION] = &AnimationEventAction;
     EventActions[PLAYER_ATTACK_FEEDBACK] = &FeedbackEventAction;
+    EventActions[BULLET_SPAWN] = &BulletSpawnEventAction;
+    EventActions[BULLET_DESPAWN] = &BulletDespawnEventAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
@@ -284,5 +286,19 @@ void Client::Respawn()
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
         LastRespawned = game->GetLocalTime();
+    }
+}
+
+void Client::ReloadWeapon()
+{
+    if (Host != nullptr && Peer != nullptr)
+    {
+        Packet myPacket = {};
+        myPacket.timestamp = GetServerTime();
+        myPacket.type = PLAYER_WEAPON_RELOAD;
+
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(Peer, 0, packet);
+        enet_host_flush(Host);
     }
 }

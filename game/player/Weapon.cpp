@@ -45,15 +45,8 @@ void Weapon::Attack(WeaponAttack attackInfo)
 
 void Weapon::Update()
 {
-    cout << "RUNNING WEAPON UPD\n";
     if (this->CooldownState > 0.0f)
-    {
         this->CooldownState -= inventory->game->GetDeltaTime();
-        cout <<"COOL. DOWN! " << CooldownState << "\n";
-    } else
-    {
-        cout << "NO. C00L. DOWN. " << CooldownState << "\n";
-    }
 }
 
 ProjectileWeapon::ProjectileWeapon()
@@ -80,10 +73,15 @@ bool ProjectileWeapon::CanAttack()
 
 void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 {
+    /*
+    cout << "ATTACK FUNC ACTIVATED! Info: COOLDOWN: " << CooldownState << ", AMMO: " << Ammo << ", ATTACK INFO: ORIGIN: (" << attackInfo.origin.x <<
+        ", " << attackInfo.origin.y << "), TARGET: (" << attackInfo.target.x << ", " << attackInfo.target.y << "), INVENTORY IDX: " <<
+            attackInfo.inventoryIdx << ", TIMESTAMP: " << attackInfo.timestamp << "\n";
+            */
     if (!this->CanAttack())
+    {
         return;
-
-    cout << "ATTACKING! with Cooldown of " << CooldownState << "\n";
+    }
     Weapon::Attack(attackInfo);
 
     AnimationEvent event;
@@ -107,7 +105,6 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
     } else
     {
         GameServer* game_server = (GameServer*) inventory->game;
-        WorldMap& game_map = game_server->MainMap;
 
         game_server->MainServer.SendPacketToAll(ANIMATION, &event, sizeof(event), {this->inventory->Owner->PlayerID});
 
@@ -120,39 +117,15 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
                 Angle += (WeaponData.angle_range / WeaponData.shots) / 2.0f;
             }
 
-            for (auto &[id,peer] : game_server->MainServer.Players)
-            {
-                Player* plr = (Player*) peer->data;
-                PlayerState VictimPlayerState = plr->GetPlayerState(attackInfo.timestamp);
-
-                if (plr == this->inventory->Owner)
-                    continue;
-                if (Vector2Distance(attackInfo.origin, VictimPlayerState.GetCenter()) >= WeaponData.range)
-                    continue;
-                RayCastResult result = game_map.CastRay(attackInfo.origin, Angle, Vector2Distance(attackInfo.origin, VictimPlayerState.GetCenter()));
-
-                if (result.hitTile == nullptr && Vector2Distance(result.hitPositionWorldSpace, VictimPlayerState.GetCenter()) <= 25.45f)
-                {
-                    plr->CurrentState.health -= WeaponData.damage;
-
-                    PlayerScoreFeedback feedback{};
-
-                    feedback.impact = result.hitPositionWorldSpace;
-                    feedback.pts = WeaponData.damage * 1.5f;
-                    feedback.timestamp = game_server->GetServerTime();
-                    feedback.type = WEAPON;
-                    feedback.clr[0] = GREEN.r;
-                    feedback.clr[1] = GREEN.g;
-                    feedback.clr[2] = GREEN.b;
-
-                    this->inventory->Owner->Feedback.push_back(feedback);
-                    this->inventory->Owner->Points += feedback.pts;
-                    game_server->MainServer.SendPacket(game_server->MainServer.Players[this->inventory->Owner->PlayerID],
-                        PLAYER_ATTACK_FEEDBACK, &feedback,sizeof(PlayerScoreFeedback));
-
-                    break;
-                }
-            }
+            game_server->AddBullet(BulletData{
+                0, this->inventory->Owner->PlayerID,
+                inventory->Owner->GetPlayerState(attackInfo.timestamp).GetCenter(),
+                Vector2Normalize({-cos(Angle * (2 * PI / 360)) * 100.0f,-sin(Angle * (2 * PI / 360)) * 100.0f}),
+                350.0f,
+                10.0f,
+                WeaponData.damage,
+                game_server->GetServerTime()
+            });
         }
     }
 
@@ -161,27 +134,23 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 
 void ProjectileWeapon::Update()
 {
-    cout << "RUNNING PROJ WEAPON UPD\n";
     Weapon::Update();
 }
 
 Inventory::Inventory(Game* game, Player* MyPlayerOwner)
 {
-    //printf("THERE'S A BLUE MOON OUT TONIGHT, %i\n", MyPlayerOwner->PlayerID);
-    //std::cout << std::flush;
     this->game = game;
     this->Owner = MyPlayerOwner;
-    //printf("THERE'S A SUSSY BLUE MOON OUT TONIGHT, %i\n", this->Owner->PlayerID);
     this->Weapons[0] = nullptr;
     this->Weapons[1] = nullptr;
     this->Weapons[2] = nullptr;
     this->EquippedItemIdx = -1;
+    this->ReloadTime = 0;
+    this->IsReloading = false;
 }
 
 Inventory::Inventory()
 {
-    //printf("THERE'S A YELLOW STAR OUT TONIGHT\n");
-    //std::cout << std::flush;
 }
 
 Inventory::~Inventory()
@@ -190,17 +159,22 @@ Inventory::~Inventory()
 
 bool Inventory::IsHoldingItem()
 {
-    return EquippedItemIdx != -1;
+    return EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE;
 }
 
 void Inventory::SetItem(WeaponData newWeaponData, int Idx)
 {
     std::shared_ptr<Weapon> wep = nullptr;
+
     if (newWeaponData.type == NONE)
     {
         DropItem(Idx);
         return;
     }
+
+    if (Weapons[Idx] != nullptr && Weapons[Idx]->WeaponData == newWeaponData)
+        return;
+
     if (newWeaponData.type == PROJECTILE)
         wep = make_shared<ProjectileWeapon>(this, newWeaponData);
     else
@@ -264,11 +238,6 @@ void Inventory::DropItem()
 
 void Inventory::EquipItem(int Idx)
 {
-    if (EquippedItemIdx == Idx)
-    {
-        UnequipItem();
-        return;
-    }
     if (Idx < 0 || Idx >=INVENTORY_SIZE)
         return;
     if (Weapons[Idx] != nullptr)
@@ -280,6 +249,8 @@ void Inventory::EquipItem(int Idx)
 void Inventory::UnequipItem()
 {
     this->EquippedItemIdx = -1;
+    this->ReloadTime = 0;
+    this->IsReloading = false;
 }
 
 void Inventory::Attack(int Idx, Vector2 Target)
@@ -290,7 +261,7 @@ void Inventory::Attack(int Idx, Vector2 Target)
         Owner->GetCenter(),
         Target,
         Idx,
-        ((GameClient*)game)->MainClient.GetServerTime()
+        game->GetServerTime()
     };
     Attack(attackInfo);
 }
@@ -304,14 +275,47 @@ void Inventory::Attack(WeaponAttack attackInfo)
 {
     if (attackInfo.inventoryIdx < 0 || attackInfo.inventoryIdx >= INVENTORY_SIZE)
         return;
+    if (IsReloading)
+        return;
     if (Weapons[attackInfo.inventoryIdx] != nullptr)
     {
         Weapons[attackInfo.inventoryIdx]->Attack(attackInfo);
     }
 }
 
+void Inventory::Reload()
+{
+    if (!IsHoldingItem())
+        return;
+    if (game->IsClient)
+        ((GameClient*)game)->MainClient.ReloadWeapon();
+    this->ReloadTime = 0.5f;
+    this->IsReloading = true;
+    cout << "RELOAD\n";
+}
+
 void Inventory::Update()
 {
+    if (IsReloading)
+        cout << "IS reloading, " << ReloadTime << "\n";
+    if (!IsHoldingItem())
+    {
+        IsReloading = false;
+        ReloadTime = 0.0f;
+    }
+    if (game != nullptr && IsReloading && ReloadTime > 0.0f)
+    {
+        this->ReloadTime -= game->GetDeltaTime();
+        cout << "subtracting time reload\n";
+    }
+    if (IsReloading && ReloadTime <= 0.0f && IsHoldingItem() && Weapons[EquippedItemIdx]->WeaponData.type == PROJECTILE)
+    {
+        ((ProjectileWeapon*)Weapons[EquippedItemIdx].get())->Ammo = Weapons[EquippedItemIdx]->WeaponData.ammo;
+        this->ReloadTime = 0;
+        this->IsReloading = false;
+        cout << "finish reload\n";
+    }
+
     SetCharacterWeaponState();
 
     if (game != nullptr && game->IsClient)
@@ -329,11 +333,17 @@ void Inventory::Update()
                     if (IsKeyPressed(KEY_THREE))
                         EquipItem(2);
                 }
+                if (IsKeyPressed(KEY_R) && IsHoldingItem())
+                    Reload();
             } else
             {
                 UnequipItem();
-
             }
+        }
+
+        if (IsMouseButtonPressed(0) && Owner->IsLocalPlayer() && Owner->CurrentState.health > 0 && !IsReloading)
+        {
+            Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
         }
 
         std::string c = string(reinterpret_cast<char*>(Owner->CurrentState.weapon_state.texture));
@@ -357,10 +367,8 @@ void Inventory::Update()
         }
     }
 
-    cout << "AKAGE " << EquippedItemIdx << "\n";
     if (EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE && Weapons[EquippedItemIdx] != nullptr)
     {
-        cout << "MAKE, IT, TUMBLE!\n";
         Weapons[EquippedItemIdx]->inventory = this;
         Weapons[EquippedItemIdx]->Update();
     }
@@ -396,7 +404,7 @@ void Inventory::SetCharacterWeaponState()
 
 WeaponData Inventory::GetWeaponData(int Idx)
 {
-    WeaponData defaultReturn = {"", NONE, 0, 0, 0, 0, 0, 0, 0};
+    WeaponData defaultReturn = {"", "", NONE, 0, 0, 0, 0, 0, 0, 0};
     if (Idx < 0 || Idx >= INVENTORY_SIZE)
         return defaultReturn;
     if (Weapons[Idx] != nullptr)
@@ -406,7 +414,8 @@ WeaponData Inventory::GetWeaponData(int Idx)
 
 void Inventory::Destroy()
 {
-    //printf("destroying weapons\n");
+    this->ReloadTime = 0;
+    this->IsReloading = false;
     for (int i = 0; i < INVENTORY_SIZE; i++)
     {
         if (Weapons[i] != nullptr)

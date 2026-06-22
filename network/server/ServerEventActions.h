@@ -15,5 +15,6 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
 void PlayerWeaponAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void GetChunkAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
+void PlayerReloadRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Event);
 
 #endif //BURST_SERVEREVENTACTIONS_H

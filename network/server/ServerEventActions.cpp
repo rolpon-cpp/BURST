@@ -109,7 +109,7 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
         atk.impact = AttackingPlayerState.GetCenter();
 
     // Health Anticheat check
-    if (AttackingPlayerState.health <= 0.0f)
+    if (AttackingPlayer->CurrentState.health <= 0.0f)
         return;
 
     // Damage Anticheat limit
@@ -120,6 +120,8 @@ void PlayerMovementAttackAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
         if (id == AttackingPlayer->PlayerID)
             continue;
         Player* VictimPlayer = (Player*) peer->data;
+        if (VictimPlayer->CurrentState.health <= 0.0f)
+            continue;
         PlayerState VictimPlayerState = VictimPlayer->GetPlayerState(Packet.timestamp);
 
         if (Vector2Distance(VictimPlayerState.GetCenter(), atk.impact)<=50)
@@ -203,4 +205,11 @@ void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
 
         OurServer.SendPacket(Event.peer, myPacket);
     }
+}
+
+void PlayerReloadRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+{
+    if (((Player*)Event.peer)->CurrentState.health <= 0)
+        return;
+    ((Player*)Event.peer)->inventory.Reload();
 }

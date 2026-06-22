@@ -11,6 +11,7 @@
 #include "../player/Camera.h"
 #include "../world/WorldMap.h"
 #include "../../network/server/Server.h"
+#include "../player/Bullet.h"
 #include "../res/ServerResources.h"
 #include "../world/Animation.h"
 #include "../world/Particles.h"
@@ -19,7 +20,11 @@ class Game
 {
 public:
     bool IsClient;
+
     WorldMap MainMap;
+    std::unordered_map<uint64_t, Bullet> Bullets;
+    uint64_t next_bullet_id = -1;
+
     double LastTime;
     double DeltaTime;
 
@@ -27,12 +32,16 @@ public:
     virtual ~Game();
 
     virtual void Start(string IPAddress = "127.0.0.1", int Port = 5000);
-    virtual double GetLocalTime();
-    virtual double GetServerTime();
-    virtual double GetDeltaTime();
     virtual void Stop();
     virtual void Update();
     virtual void Quit();
+
+    virtual double GetLocalTime();
+    virtual double GetServerTime();
+    virtual double GetDeltaTime();
+
+    virtual void AddBullet(Bullet b);
+    virtual void AddBullet(BulletData bd);
 };
 
 class GameClient : public Game
@@ -66,6 +75,8 @@ public:
     void Stop();
     void Update();
     void Quit();
+    void AddBullet(Bullet b);
+    void AddBullet(BulletData bd);
 };
 
 #endif //BURST_GAME_H

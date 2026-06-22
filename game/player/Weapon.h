@@ -48,6 +48,7 @@ struct WeaponData
     float angle_range = 0.0f;
     int shots = 0;
     int ammo = 0;
+    bool operator==(const WeaponData& weapon_data) const = default;
 };
 #pragma pack(pop)
 
@@ -97,6 +98,9 @@ public:
 
     float WeaponRenderRot = 0.0f;
 
+    double ReloadTime = 0.0f;
+    bool IsReloading = false;
+
     Inventory(Game* game, Player* MyPlayerOwner);
     Inventory();
     ~Inventory();
@@ -118,6 +122,8 @@ public:
     void Attack(Vector2 Target);
     void Attack(int Idx, Vector2 Target);
     void Attack(WeaponAttack attackInfo);
+
+    void Reload();
 
     WeaponData GetWeaponData(int Idx);
 
