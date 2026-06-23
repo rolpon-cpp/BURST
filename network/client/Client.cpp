@@ -148,6 +148,7 @@ void Client::Reset()
     EventActions[PLAYER_ATTACK_FEEDBACK] = &FeedbackEventAction;
     EventActions[BULLET_SPAWN] = &BulletSpawnEventAction;
     EventActions[BULLET_DESPAWN] = &BulletDespawnEventAction;
+    EventActions[PLAYER_CUSTOMIZED_ITEMS] = &PlayerCustomizedItemsAction;
     Peer = nullptr;
     Host = nullptr;
     ServerTimeOffset = 0;
@@ -223,82 +224,72 @@ double Client::GetServerTime()
     return GetTimeUtils() + ServerTimeOffset;
 }
 
+void Client::SendPacket(Packet myPacket)
+{
+    if (Host != nullptr && Peer != nullptr)
+    {
+        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
+        enet_peer_send(Peer, 0, packet);
+        enet_host_flush(Host);
+    }
+}
+
+void Client::SendPacket(PacketType type, void* data, int size)
+{
+    Packet myPacket = {};
+    myPacket.timestamp = GetServerTime();
+    myPacket.type = type;
+    memcpy(&myPacket.data, data, size);
+    SendPacket(myPacket);
+}
+
+void Client::SendPacket(PacketType type)
+{
+    Packet myPacket = {};
+    myPacket.timestamp = GetServerTime();
+    myPacket.type = type;
+    memset(myPacket.data, 0, sizeof(myPacket.data));
+    SendPacket(myPacket);
+}
+
 void Client::UpdateState(PlayerState& State)
 {
-    if (Host != nullptr && Peer != nullptr && game->GetLocalTime() - LastUpdatedState >= 1 / 50.0f)
+    if (game->GetLocalTime() - LastUpdatedState >= 1 / 50.0f)
     {
         Packet myPacket = {};
         myPacket.timestamp = State.timestamp;
         myPacket.type = PLAYER_UPDATE;
         memcpy(&myPacket.data, &State, sizeof(PlayerState));
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), 0);
-        enet_peer_send(Peer, 0, packet);
-        enet_host_flush(Host);
+        SendPacket(myPacket);
         LastUpdatedState = game->GetLocalTime();
     }
 }
 
 void Client::MovementAttack(Vector2 ImpactPoint, float Damage)
 {
-    if (Host != nullptr && Peer != nullptr)
-    {
-        Packet myPacket = {};
-        myPacket.timestamp = GetServerTime();
-        myPacket.type = PLAYER_MOVEMENT_ATTACK;
-
-        PlayerMovementAttack player_movement_attack{ImpactPoint, Damage};
-
-        memcpy(&myPacket.data, &player_movement_attack, sizeof(PlayerMovementAttack));
-
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(Peer, 0, packet);
-        enet_host_flush(Host);
-    }
+    PlayerMovementAttack player_movement_attack{ImpactPoint, Damage};
+    SendPacket(PLAYER_MOVEMENT_ATTACK,&player_movement_attack,sizeof(player_movement_attack));
 }
 
 void Client::AttackWithWeapon(WeaponAttack Attack)
 {
-    if (Host != nullptr && Peer != nullptr)
-    {
-        Packet myPacket = {};
-        myPacket.timestamp = GetServerTime();
-        myPacket.type = PLAYER_WEAPON_ATTACK;
-
-        memcpy(&myPacket.data, &Attack, sizeof(Attack));
-
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(Peer, 0, packet);
-        enet_host_flush(Host);
-    }
+    SendPacket(PLAYER_WEAPON_ATTACK,&Attack,sizeof(Attack));
 }
 
 void Client::Respawn()
 {
-    if (Host != nullptr && Peer != nullptr)
-    {
-        if (game->GetLocalTime() - LastRespawned < 5.0f)
-            return;
-        Packet myPacket = {};
-        myPacket.timestamp = GetServerTime();
-        myPacket.type = PLAYER_RESPAWN_REQ;
-
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(Peer, 0, packet);
-        enet_host_flush(Host);
-        LastRespawned = game->GetLocalTime();
-    }
+    if (game->GetLocalTime() - LastRespawned < 5.0f)
+        return;
+    SendPacket(PLAYER_RESPAWN_REQ);
+    LastRespawned = game->GetLocalTime();
 }
 
 void Client::ReloadWeapon()
 {
-    if (Host != nullptr && Peer != nullptr)
-    {
-        Packet myPacket = {};
-        myPacket.timestamp = GetServerTime();
-        myPacket.type = PLAYER_WEAPON_RELOAD;
+    SendPacket(PLAYER_WEAPON_RELOAD);
+}
 
-        ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(Peer, 0, packet);
-        enet_host_flush(Host);
-    }
+void Client::SetPlayerCustomizedItems(PlayerCustomizedItems CustomizedItems)
+{
+    SendPacket(PLAYER_CUSTOMIZED_ITEMS, &CustomizedItems, sizeof(CustomizedItems));
 }

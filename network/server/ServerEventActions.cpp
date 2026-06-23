@@ -209,7 +209,17 @@ void PlayerRespawnRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Ev
 
 void PlayerReloadRequestAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
 {
-    if (((Player*)Event.peer)->CurrentState.health <= 0)
+    if (((Player*)Event.peer->data)->CurrentState.health <= 0)
         return;
-    ((Player*)Event.peer)->inventory.Reload();
+    ((Player*)Event.peer->data)->inventory.Reload();
+}
+
+void PlayerCustomizedItemsAction(Server& OurServer, Packet& Packet, ENetEvent& Event)
+{
+    PlayerCustomizedItems customizedItems;
+    memcpy(&customizedItems, &Packet.data, sizeof(PlayerCustomizedItems));
+    Player* plr = ((Player*)Event.peer->data);
+    customizedItems.id = plr->PlayerID;
+    plr->CustomizedItems = customizedItems;
+    OurServer.SendPacketToAll(PLAYER_CUSTOMIZED_ITEMS, &customizedItems, sizeof(PlayerCustomizedItems), {plr->PlayerID});
 }

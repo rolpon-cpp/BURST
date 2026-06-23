@@ -21,5 +21,6 @@ void AnimationEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void FeedbackEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void BulletSpawnEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 void BulletDespawnEventAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
+void PlayerCustomizedItemsAction(Client& OurClient, Packet& Packet, ENetEvent& Event);
 
 #endif //BURST_EVENTACTIONS_H

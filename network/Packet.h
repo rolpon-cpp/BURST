@@ -18,6 +18,7 @@ enum PacketType {
 
     PLAYER_JOIN,
     PLAYER_LEFT,
+    PLAYER_CUSTOMIZED_ITEMS,
     NEW_PLAYER,
 
     ANIMATION,

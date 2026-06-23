@@ -46,8 +46,14 @@ struct WeaponData
     float range = 0.0f;
     float intensity = 0.0f;
     float angle_range = 0.0f;
-    int shots = 0;
     int ammo = 0;
+    int shots = 0;
+
+    uint8_t color[3] = {0, 0, 0};
+    float speed = 0.0f;
+    float radius = 0.0f;
+    float height = 0.0f;
+
     bool operator==(const WeaponData& weapon_data) const = default;
 };
 #pragma pack(pop)

@@ -1,6 +1,9 @@
 
+#include <algorithm>
+
 #include "game_libs.h"
 #include <iostream>
+#include <random>
 #include <sstream>
 
 #include "vector"
@@ -31,19 +34,56 @@ void client() {
     cout << "pls enter ip:prt ";
     cin >> ip;
 
+    std::string username = "";
+
+    PlayerCustomizedItems customizedItems;
+
     int prt = 5000;
     std::vector<std::string> c = split(ip, ':');
     if (c.size() == 2)
     {
         ip = c.at(0);
         prt = std::stoi(c.at(1));
+
+        cout << "pls enter username ";
+        cin >> username;
     } else
     {
         ip = "127.0.0.1";
+        std::vector<std::string> words = {
+            "cat", "dog", "bird", "fish", "ant", "bug", "beetle",
+            "frog", "duck", "make", "complete", "create",
+            "awesome", "what", "epics", "tale", "work",
+            "villager", "time", "like", "start", "end",
+            "money", "currency", "lisp", "wasp", "done",
+            "ocean", "underwater",  "lasting",
+            "world", "humans", "animals", "mouth", "love", "happy", "bear", "polarbear",
+            "water", "drink", "eat", "consume", "devour", "precious",
+            "gem", "diamond", "rock", "canyon", "game", "connection",
+            "touch", "feel", "write", "read","fight", "save",
+            "purple", "pink", "green", "blue","orange",
+        };
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution distr(1000, 9999);
+
+        // Shuffle the entire vector randomly
+        std::shuffle(words.begin(), words.end(), gen);
+
+        // Now you can take words sequentially without duplicates
+        username = words.at(0);
+        username[0] = toupper(username[0]);
+        std::string s = words.at(1);
+        s[0] = toupper(s[0]);
+        username += s;
+        username += to_string(distr(gen));
     }
 
+    memcpy(customizedItems.name, username.c_str(), username.size());
+
     GameClient game = GameClient();
-    game.Start(ip, prt);
+    game.Start(ip, prt, customizedItems);
 
     while (!WindowShouldClose()) {
         BeginDrawing();

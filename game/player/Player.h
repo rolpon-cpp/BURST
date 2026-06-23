@@ -25,9 +25,17 @@ struct PlayerScoreFeedback {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct PlayerCustomizedItems {
+    int32_t id = -1;
+    uint8_t name[32] = {0};
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct PlayerJoin {
     int32_t id = 0;
     Vector2 starting_location = {0, 0};
+    PlayerCustomizedItems customized_items;
 };
 #pragma pack(pop)
 
@@ -79,6 +87,8 @@ class Player {
 public:
     Game *game;
     int32_t PlayerID = -1;
+
+    PlayerCustomizedItems CustomizedItems;
 
     Inventory inventory;
 

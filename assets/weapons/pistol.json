@@ -8,5 +8,9 @@
   "intensity": 0.4,
   "angle_range": 2,
   "shots": 1,
-  "ammo": 15
+  "ammo": 15,
+  "color": [255, 165, 0],
+  "speed": 700,
+  "radius": 10,
+  "height": 5
 }

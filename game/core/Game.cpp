@@ -38,18 +38,26 @@ double Game::GetDeltaTime()
 
 void Game::AddBullet(Bullet b)
 {
-    b.MyBulletData.id = next_bullet_id;
-    b.MyBulletData.timestamp = GetServerTime();
-    Bullets[next_bullet_id] = b;
-    next_bullet_id += 1;
+    if (!IsClient)
+    {
+        b.MyBulletData.id = next_bullet_id;
+        b.MyBulletData.timestamp = GetServerTime();
+    }
+    Bullets[IsClient ? b.MyBulletData.id : next_bullet_id] = b;
+    if (!IsClient)
+        next_bullet_id += 1;
 }
 
 void Game::AddBullet(BulletData bd)
 {
-    bd.id = next_bullet_id;
-    bd.timestamp = GetServerTime();
-    Bullets[next_bullet_id] = Bullet(this, bd);
-    next_bullet_id += 1;
+    if (!IsClient)
+    {
+        bd.id = next_bullet_id;
+        bd.timestamp = GetServerTime();
+    }
+    Bullets[IsClient ? bd.id : next_bullet_id] = Bullet(this, bd);
+    if (!IsClient)
+        next_bullet_id += 1;
 }
 
 void Game::Start(string IPAddress, int Port)

@@ -30,7 +30,7 @@ Weapon::~Weapon()
 
 bool Weapon::CanAttack()
 {
-    if (this->CooldownState > 0.0f)
+    if (this->CooldownState > (inventory->game->IsClient ? 0.0f : 0.1f))
         return false;
 
     return true;
@@ -73,11 +73,11 @@ bool ProjectileWeapon::CanAttack()
 
 void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 {
-    /*
+/*
     cout << "ATTACK FUNC ACTIVATED! Info: COOLDOWN: " << CooldownState << ", AMMO: " << Ammo << ", ATTACK INFO: ORIGIN: (" << attackInfo.origin.x <<
         ", " << attackInfo.origin.y << "), TARGET: (" << attackInfo.target.x << ", " << attackInfo.target.y << "), INVENTORY IDX: " <<
-            attackInfo.inventoryIdx << ", TIMESTAMP: " << attackInfo.timestamp << "\n";
-            */
+            attackInfo.inventoryIdx << ", TIMESTAMP: " << attackInfo.timestamp << "\n";*/
+
     if (!this->CanAttack())
     {
         return;
@@ -92,7 +92,7 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
     event.sound_effect =
     {
         "",
-        1.0f,
+        WeaponData.intensity,
         1.0f,
     };
     memcpy(&event.sound_effect,this->WeaponData.sound,32);
@@ -121,8 +121,10 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
                 0, this->inventory->Owner->PlayerID,
                 inventory->Owner->GetPlayerState(attackInfo.timestamp).GetCenter(),
                 Vector2Normalize({-cos(Angle * (2 * PI / 360)) * 100.0f,-sin(Angle * (2 * PI / 360)) * 100.0f}),
-                350.0f,
-                10.0f,
+                WeaponData.color[0], WeaponData.color[1], WeaponData.color[2],
+                WeaponData.speed,
+                WeaponData.radius,
+                WeaponData.height,
                 WeaponData.damage,
                 game_server->GetServerTime()
             });
@@ -159,7 +161,7 @@ Inventory::~Inventory()
 
 bool Inventory::IsHoldingItem()
 {
-    return EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE;
+    return EquippedItemIdx != -1 && EquippedItemIdx >= 0 && EquippedItemIdx < INVENTORY_SIZE && Weapons[EquippedItemIdx] != nullptr;
 }
 
 void Inventory::SetItem(WeaponData newWeaponData, int Idx)
@@ -238,6 +240,14 @@ void Inventory::DropItem()
 
 void Inventory::EquipItem(int Idx)
 {
+    if (game->IsClient)
+    {
+        if (EquippedItemIdx == Idx)
+        {
+            UnequipItem();
+            return;
+        }
+    }
     if (Idx < 0 || Idx >=INVENTORY_SIZE)
         return;
     if (Weapons[Idx] != nullptr)
@@ -287,17 +297,16 @@ void Inventory::Reload()
 {
     if (!IsHoldingItem())
         return;
+    if (IsReloading)
+        return;
     if (game->IsClient)
         ((GameClient*)game)->MainClient.ReloadWeapon();
     this->ReloadTime = 0.5f;
     this->IsReloading = true;
-    cout << "RELOAD\n";
 }
 
 void Inventory::Update()
 {
-    if (IsReloading)
-        cout << "IS reloading, " << ReloadTime << "\n";
     if (!IsHoldingItem())
     {
         IsReloading = false;
@@ -306,14 +315,12 @@ void Inventory::Update()
     if (game != nullptr && IsReloading && ReloadTime > 0.0f)
     {
         this->ReloadTime -= game->GetDeltaTime();
-        cout << "subtracting time reload\n";
     }
     if (IsReloading && ReloadTime <= 0.0f && IsHoldingItem() && Weapons[EquippedItemIdx]->WeaponData.type == PROJECTILE)
     {
         ((ProjectileWeapon*)Weapons[EquippedItemIdx].get())->Ammo = Weapons[EquippedItemIdx]->WeaponData.ammo;
         this->ReloadTime = 0;
         this->IsReloading = false;
-        cout << "finish reload\n";
     }
 
     SetCharacterWeaponState();
@@ -404,7 +411,7 @@ void Inventory::SetCharacterWeaponState()
 
 WeaponData Inventory::GetWeaponData(int Idx)
 {
-    WeaponData defaultReturn = {"", "", NONE, 0, 0, 0, 0, 0, 0, 0};
+    WeaponData defaultReturn = {0};
     if (Idx < 0 || Idx >= INVENTORY_SIZE)
         return defaultReturn;
     if (Weapons[Idx] != nullptr)

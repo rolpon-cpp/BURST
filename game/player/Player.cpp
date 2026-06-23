@@ -72,6 +72,7 @@ Player::Player(float X, float Y, float Speed, Game* game)
     LastState = CurrentState;
     LocalState = CurrentState;
     DashCharge = 0.0f;
+    CustomizedItems = PlayerCustomizedItems{};
     LastGhostPos = {0,0};
 
     inventory = Inventory(game, this);
@@ -90,7 +91,7 @@ Player::Player(PlayerState State, Game* game)
     LastMovementAttack = 0;
     DashCharge = 0.0f;
     LastGhostPos = {0,0};
-
+    CustomizedItems = PlayerCustomizedItems{};
     inventory = Inventory(game, this);
 }
 
@@ -429,9 +430,9 @@ void Player::Update()
                 ColorAlpha(WHITE, prog * 0.3f));
         }
 
-        string playerName = "Player " + to_string(PlayerID);
-        if (IsLocalPlayer())
-            playerName = "You";
+        char p[32];
+        memcpy(p,CustomizedItems.name,32);
+        string playerName = string(p);
         int sz = MeasureText(playerName.c_str(), 20);
 
         DisplayHealth = Lerp(DisplayHealth, CurrentState.health, 5.0f * game->GetDeltaTime());

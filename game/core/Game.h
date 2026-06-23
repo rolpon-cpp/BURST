@@ -58,7 +58,7 @@ public:
     GameClient();
     virtual ~GameClient();
     double GetServerTime() override;
-    void Start(string IPAddress = "127.0.0.1", int Port = 5000);
+    void Start(string IPAddress = "127.0.0.1", int Port = 5000, PlayerCustomizedItems CustomizedItems = {});
     void Stop();
     void Update();
     void Quit();

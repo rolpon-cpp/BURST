@@ -45,12 +45,18 @@ public:
     void Reset();
 
     std::unordered_map<int32_t, Player>& GetPlayers();
+
+    void SendPacket(Packet packet);
+    void SendPacket(PacketType type);
+    void SendPacket(PacketType type, void* data, int size);
+
     void UpdateState(PlayerState& State);
     void RequestChunk(Vector2 Position);
     void AttackWithWeapon(WeaponAttack Attack);
     void MovementAttack(Vector2 ImpactPoint, float Damage);
     void ReloadWeapon();
     void Respawn();
+    void SetPlayerCustomizedItems(PlayerCustomizedItems CustomizedItems);
     double GetServerTime();
 };
 

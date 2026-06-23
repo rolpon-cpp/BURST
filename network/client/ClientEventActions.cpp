@@ -38,6 +38,7 @@ void PlayerJoinAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
         Packet.timestamp
     };
     OurClient.Players[player_join.id] = Player(s, OurClient.game);
+    OurClient.Players[player_join.id].CustomizedItems = player_join.customized_items;
     OurClient.Players[player_join.id].PlayerID = player_join.id;
 }
 
@@ -139,4 +140,14 @@ void BulletDespawnEventAction(Client& OurClient, Packet& Packet, ENetEvent& Even
     memcpy(&bd, &Packet.data, sizeof(bd));
     if (OurClient.game->Bullets.contains(bd.id))
         OurClient.game->Bullets.erase(bd.id);
+}
+
+void PlayerCustomizedItemsAction(Client& OurClient, Packet& Packet, ENetEvent& Event)
+{
+    PlayerCustomizedItems customizedItems;
+    memcpy(&customizedItems, &Packet.data, sizeof(customizedItems));
+    if (OurClient.Players.contains(customizedItems.id))
+    {
+        OurClient.Players[customizedItems.id].CustomizedItems = customizedItems;
+    }
 }

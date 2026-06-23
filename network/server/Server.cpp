@@ -70,6 +70,7 @@ void Server::Reset()
     PacketEventActions[PLAYER_WEAPON_ATTACK] = &PlayerWeaponAttackAction;
     PacketEventActions[PLAYER_RESPAWN_REQ] = &PlayerRespawnRequestAction;
     PacketEventActions[PLAYER_WEAPON_RELOAD] = &PlayerReloadRequestAction;
+    PacketEventActions[PLAYER_CUSTOMIZED_ITEMS] = &PlayerCustomizedItemsAction;
 }
 
 void Server::StartServer(int Port, int MaxClients)
@@ -191,10 +192,10 @@ void Server::PlayerJoinNotification(ENetPeer* NewPeer, ENetPeer* PeerToNotify)
     PlayerJoin playerJoin = {0};
     playerJoin.id = static_cast<Player*>(NewPeer->data)->PlayerID;
     playerJoin.starting_location = static_cast<Player*>(NewPeer->data)->CurrentState.position;
+    playerJoin.customized_items = static_cast<Player*>(NewPeer->data)->CustomizedItems;
     memcpy(&myPacket.data, &playerJoin, sizeof(playerJoin));
 
-    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
-    enet_peer_send(PeerToNotify, 0, packet);
+    SendPacket(PeerToNotify, myPacket);
 }
 
 void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
@@ -207,9 +208,7 @@ void Server::PlayerLeftNotification(ENetPeer* OldPeer, ENetPeer* PeerToNotify)
     left.id = static_cast<Player*>(OldPeer->data)->PlayerID;
     memcpy(&myPacket.data, &left, sizeof(left));
 
-    ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket),
-                                            ENET_PACKET_FLAG_RELIABLE);
-    enet_peer_send(PeerToNotify, 0, packet);
+    SendPacket(PeerToNotify, myPacket);
 }
 
 void Server::PlayerConnect(ENetEvent& Event)

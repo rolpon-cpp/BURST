@@ -27,12 +27,14 @@ double GameClient::GetServerTime()
     return MainClient.GetServerTime();
 }
 
-void GameClient::Start(string IPAddress, int Port)
+void GameClient::Start(string IPAddress, int Port, PlayerCustomizedItems CustomizedItems)
 {
     Game::Start(IPAddress, Port);
     MainPlayer.Destroy();
     MainPlayer = Player((WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2 - 18.0f, (WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2 - 18.0f, 350.0f, this);
+    MainPlayer.CustomizedItems = CustomizedItems;
     MainClient.Connect(IPAddress, Port);
+    MainClient.SetPlayerCustomizedItems(CustomizedItems);
 }
 
 void GameClient::Stop()

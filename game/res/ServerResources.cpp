@@ -93,6 +93,19 @@ void ServerResources::Load()
                 wep.shots = data["shots"].get<int>();
             if (data.count("ammo"))
                 wep.ammo = data["ammo"].get<int>();
+            if (data.count("speed"))
+                wep.speed = data["speed"].get<float>();
+            if (data.count("color"))
+            {
+                std::vector<int> e = data["color"].get<std::vector<int>>();
+                wep.color[0] = static_cast<uint8_t>(e[0]);
+                wep.color[1] = static_cast<uint8_t>(e[1]);
+                wep.color[2] = static_cast<uint8_t>(e[2]);
+            }
+            if (data.count("radius"))
+                wep.radius = data["radius"].get<float>();
+            if (data.count("height"))
+                wep.height = data["height"].get<float>();
 
             NewWeapons.insert({p, wep});
             g.close();
