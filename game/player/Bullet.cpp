@@ -88,11 +88,13 @@ void Bullet::Update()
             }
         }
 
+        //BeginBlendMode(BLEND_ADDITIVE);
         Color r = {MyBulletData.color[0], MyBulletData.color[1], MyBulletData.color[2], 255};
         DrawCircleGradient(CurrentPosition.x, CurrentPosition.y, MyBulletData.size, ColorAlpha(r,0.25f), ColorAlpha(ColorContrast(r, 0.1f), 0.125f));
         DrawRectanglePro(
             {CurrentPosition.x, CurrentPosition.y,MyBulletData.size, MyBulletData.height}, {MyBulletData.size / 2.0f,
         MyBulletData.height / 2.0f}, 180.0f - Vector2LineAngle({0,0}, MyBulletData.direction) * RAD2DEG, r);
+        //EndBlendMode();
     }
 
 }

@@ -23,12 +23,12 @@ Particles::Particles(GameClient* game)
     this->game = game;
 }
 
-void Particles::CreateParticles(int amount, Vector2 impact, Vector2 direction, float lifetime, float velocity,
+ParticleEffect CreateParticleEffect(int amount, Vector2 impact, Vector2 direction, float lifetime, float velocity,
     float velocity_slowdown, float size, Color color, float direction_variety, float impact_variety, float size_variety,
     float velocity_slowdown_variety, float lifetime_variety, float color_variety, float velocity_variety)
 {
-    CreateParticles({amount, impact, direction, lifetime, velocity, velocity_slowdown, size, color, direction_variety, impact_variety, size_variety,
-    velocity_slowdown_variety, lifetime_variety, color_variety, velocity_variety});
+    return ParticleEffect{amount, impact, direction, lifetime, velocity, velocity_slowdown, size, color, direction_variety, impact_variety, size_variety,
+    velocity_slowdown_variety, lifetime_variety, color_variety, velocity_variety};
 }
 
 void Particles::CreateParticles(ParticleEffect effect)
@@ -72,6 +72,7 @@ void Particles::Update()
         return false;
     });
 
+    BeginBlendMode(BLEND_ADDITIVE);
     for (int i = 0; i < HandledParticles.size(); i++)
     {
         Particle& p = HandledParticles[i];
@@ -98,6 +99,7 @@ void Particles::Update()
 
         p.lifetime -= game->GetDeltaTime();
     }
+    EndBlendMode();
 }
 
 void Particles::Quit()

@@ -111,9 +111,9 @@ void Server::PlayerTimeSync(ENetPeer* Peer)
 Vector2 Server::GetSpawnLocation()
 {
     return {(WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2.0f
-        + (float)GetRandomValue(-200, 200),
+        + (float)GetRandomValue(-400, 400),
             (WORLD_CHUNK_SIZE * CHUNK_SIZE * TILE_SIZE) / 2.0f
-        + (float)GetRandomValue(-200, 200)
+        + (float)GetRandomValue(-400, 400)
     };
 }
 
@@ -163,12 +163,14 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
 {
     LatestPlayerID += 1;
     auto* newPlayer = new Player({
-        LatestPlayerID, GetSpawnLocation(), {0, 0}, {0, 0}, 0, 100.0f, 350.0f, WeaponState{}, game->GetLocalTime()
+        LatestPlayerID, GetSpawnLocation(), {0, 0}, {0, 0}, 0, 100.0f,
+        550.0f, WeaponState{}, game->GetLocalTime()
     }, game);
     newPlayer->PlayerID = LatestPlayerID;
     newPlayer->LastState = newPlayer->CurrentState;
     newPlayer->LocalState = newPlayer->CurrentState;
     newPlayer->inventory.GiveItem(game->MainResources.GetWeaponData("pistol"));
+    newPlayer->inventory.GiveItem(game->MainResources.GetWeaponData("shotgun"));
 
     Peer->data = newPlayer;
     Players[LatestPlayerID] = Peer;

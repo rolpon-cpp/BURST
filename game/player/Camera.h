@@ -18,6 +18,8 @@ class BurstCamera
     Vector2 CameraShakeOffset;
     float CameraShakeIntensity;
 
+    float CameraZoomTime;
+    float CameraZoomTarget;
     bool IsZoomingCamera = false;
 
     Camera2D RaylibCamera;
@@ -37,7 +39,7 @@ public:
     Vector2 GetCameraPos();
 
     void ShakeCamera(float Intensity);
-    void ZoomCamera(float Zoom);
+    void ZoomCamera(float Zoom, float Time = 0.01f);
 
     void Start();
     void Stop();

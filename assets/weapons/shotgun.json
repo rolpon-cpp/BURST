@@ -1,0 +1,17 @@
+{
+  "type": "projectile",
+  "texture": "shotgun",
+  "sound": "shotgun_shoot",
+  "damage": 2,
+  "cooldown": 0.5,
+  "range": 350,
+  "intensity": 0.5,
+  "angle_range": 60,
+  "shots": 5,
+  "ammo": -1,
+  "color": [255, 165, 100],
+  "speed": 1500,
+  "radius": 32,
+  "height": 16,
+  "shake_camera": true
+}

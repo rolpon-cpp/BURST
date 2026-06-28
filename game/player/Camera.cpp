@@ -18,7 +18,9 @@ BurstCamera::BurstCamera(GameClient* game)
     this->CameraShakes = 0;
     this->NextCameraShakeOffsetChange = 0.0f;
     this->CameraPos = {0, 0};
+    this->CameraZoomTime = 0.0f;
     this->CameraZoom = 1.0f;
+    this->CameraZoomTarget = 0.0f;
     this->CameraShakeIntensity = 0;
     this->CameraShakeOffset = {0, 0};
 }
@@ -27,10 +29,11 @@ BurstCamera::~BurstCamera()
 {
 }
 
-void BurstCamera::ZoomCamera(float Zoom)
+void BurstCamera::ZoomCamera(float Zoom, float Time)
 {
     IsZoomingCamera = true;
-    CameraZoom = lerp(CameraZoom, Zoom, 10.0f * game->GetDeltaTime());
+    CameraZoomTarget = Zoom;
+    CameraZoomTime = Time;
 }
 
 Vector2 BurstCamera::GetWorldMousePos()
@@ -68,10 +71,17 @@ void BurstCamera::Update()
             game->MainPlayer.GetCenter(), 6.5f * game->GetDeltaTime());
         RaylibCamera.target = CameraPos + CameraShakeOffset;
     }
-    if (IsZoomingCamera)
-        IsZoomingCamera=false;
-    else
+
+    IsZoomingCamera = CameraZoomTime > 0.0f;
+
+    if (!IsZoomingCamera)
         CameraZoom = lerp(CameraZoom, 1.0f, 5.0f * game->GetDeltaTime());
+    else
+    {
+        CameraZoom = lerp(CameraZoom, CameraZoomTarget, 10.0f * game->GetDeltaTime());
+        CameraZoomTime -= game->GetDeltaTime();
+    }
+
     RaylibCamera.zoom = CameraZoom * (GetScreenWidth() / 1280.0f);
 }
 

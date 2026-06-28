@@ -188,76 +188,54 @@ void Player::SmoothPlayerState(double Delay)
 
 Vector2 Player::ProcessInputs()
 {
-    if (ZoneTarget == -1)
+    Vector2 MyPlayerDirection = {0, 0};
+
+    if (IsKeyDown(KEY_A))
+        MyPlayerDirection.x -= 1;
+    if (IsKeyDown(KEY_D))
+        MyPlayerDirection.x += 1;
+    if (IsKeyDown(KEY_W))
+        MyPlayerDirection.y -= 1;
+    if (IsKeyDown(KEY_S))
+        MyPlayerDirection.y += 1;
+    if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) && !IsDashing && ((GameClient*)game)->MainClient.GetServerTime() - LastMovementAttack >= 1)
     {
-        Vector2 MyPlayerDirection = {0, 0};
+        DashCharge += game->GetDeltaTime() * 1.05f;
+        if (DashCharge >= 1.0f)
+            DashCharge = 1.0f;
+        ((GameClient*)game)->MainCamera.ZoomCamera(1.35f);
 
-        if (IsKeyDown(KEY_A))
-            MyPlayerDirection.x -= 1;
-        if (IsKeyDown(KEY_D))
-            MyPlayerDirection.x += 1;
-        if (IsKeyDown(KEY_W))
-            MyPlayerDirection.y -= 1;
-        if (IsKeyDown(KEY_S))
-            MyPlayerDirection.y += 1;
-        if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) && !IsDashing && ((GameClient*)game)->MainClient.GetServerTime() - LastMovementAttack >= 1)
+        if (IsMouseButtonDown(0) && DashCharge >= 0.3f)
         {
-            DashCharge += game->GetDeltaTime() * 1.05f;
-            if (DashCharge >= 1.0f)
-                DashCharge = 1.0f;
-            ((GameClient*)game)->MainCamera.ZoomCamera(1.45f);
-
-
-
-            if (IsMouseButtonDown(0) && DashCharge >= 0.3f)
-            {
-                CurrentState.velocity = Vector2Normalize(
-                ((GameClient*)game)->MainCamera.GetWorldMousePos() - GetCenter()) * 2500.0f * DashCharge;
-                LastMovementAttack = ((GameClient*)game)->MainClient.GetServerTime();
-                IsDashing = true;
-                DashCharge = 0.0f;
-                DashedPlayerID = -1;
-            }
-        } else
-        {
+            CurrentState.velocity = Vector2Normalize(
+            ((GameClient*)game)->MainCamera.GetWorldMousePos() - GetCenter()) * 5550.0f * DashCharge;
+            LastMovementAttack = ((GameClient*)game)->MainClient.GetServerTime();
+            IsDashing = true;
             DashCharge = 0.0f;
-        }
-        if (IsKeyPressed(KEY_F) && !IsDashing && DashCharge <= 0.0f && game->GetLocalTime() - LastMovementAttack >= 1)
-        {
-            int32_t id = -1;
-            for (auto &[plr_id, plr] : ((GameClient*)game)->MainClient.Players)
+            DashedPlayerID = -1;
+            SoundEffect sound_effect =
             {
-                if (Vector2Distance(plr.GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) <= 100.0f &&
-                    game->MainMap.CastRay(CurrentState.position, plr.CurrentState.position).hitTile == nullptr)
-                {
-                    id = plr_id;
-                    break;
-                }
-            }
-
-            if (id != -1)
-            {
-                ZoneTarget = id;
-                LastMovementAttack = game->GetLocalTime();
-            }
+                "dash",
+                1.0f,
+                1.0f,
+            };
+            sound_effect.set_properties(0);
+            ((GameClient*)game)->MainSounds.PlayGameSound(sound_effect);
         }
-        MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
-        CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) * RAD2DEG;
-        return MyPlayerDirection;
-    }
-    if (((GameClient*)game)->MainClient.Players.contains(ZoneTarget))
+    } else
     {
-        Player& plr = ((GameClient*)game)->MainClient.Players[ZoneTarget];
-        CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), plr.GetCenter()) * RAD2DEG;
+        DashCharge = 0.0f;
     }
-    return {0,0};
+    MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
+    CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) * RAD2DEG;
+    return MyPlayerDirection;
 }
 
 void Player::ProcessVelocity(PlayerState* State, float Delta)
 {
     bool S1x = State->velocity.x > 0;
     bool S1y = State->velocity.y > 0;
-    State->velocity -= Vector2Normalize(State->velocity) * 6000.0f * Delta;
+    State->velocity -= Vector2Normalize(State->velocity) * 20000.0f * Delta;
     bool S2x = State->velocity.x > 0;
     bool S2y = State->velocity.y > 0;
     if (S1x != S2x)
@@ -301,36 +279,6 @@ void Player::ProcessMovementAttacks(PlayerState* State)
                 ((GameClient*)game)->MainCamera.ShakeCamera(1.0f);
                 break;
             }
-        }
-    } else if (ZoneTarget != -1 && ((GameClient*)game)->MainClient.Players.contains(ZoneTarget))
-    {
-        State->velocity = Vector2Normalize(((GameClient*)game)->MainClient.Players[ZoneTarget].CurrentState.position-State->position) * 2000.0f;
-        float TargetDist = Vector2Distance(State->position, ((GameClient*)game)->MainClient.Players[ZoneTarget].CurrentState.position);
-        float Percent = (TargetDist / 600.0f);
-        if (Percent >= 1.0f)
-            Percent = 1.0f;
-        if (Percent <= 0.0f)
-            Percent = 0.0f;
-
-        ((GameClient*)game)->MainCamera.ZoomCamera(max(3.0f - Percent*3.0f, 1.0f));
-        if (TargetDist <= 50.0f)
-        {
-            SoundEffect sound_effect =
-            {
-                "dash_hit",
-                1.0f,
-                1.0f,
-            };
-            sound_effect.set_properties(0);
-            ((GameClient*)game)->MainSounds.PlayGameSound(sound_effect);
-
-            ((GameClient*)game)->MainClient.MovementAttack(State->position, min(max(VelocityMagnitude / 400.0f, 0.0f), 20.0f));
-            ((GameClient*)game)->MainCamera.ShakeCamera(0.2f);
-            ZoneTarget = -1;
-        }
-        if (ZoneTarget != -1 && game->GetLocalTime() - LastMovementAttack >= 1.0f)
-        {
-            ZoneTarget = -1;
         }
     }
 }
@@ -442,6 +390,9 @@ void Player::Update()
 
         DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
         DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+    } else
+    {
+        CurrentState.health += game->GetDeltaTime() * 1.25f;
     }
 
     //std::cout << "DONE PROCESSING PLAYER!" << "\n" << std::flush;

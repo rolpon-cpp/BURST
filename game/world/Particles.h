@@ -45,23 +45,7 @@ struct Particle
     float lifetime = 0;
 };
 
-#define RESPAWN_PARTICLE_EFFECT ParticleEffect{20, {0,0}, {0,0}, 1.5f, 200.0f, 100.0f, 6.0f, {12, 232, 78, 255}, 360.0f, 25.0f, 2.0f, 25.0f, 1.25f, 0.25f, 50.0f};
-
-class Particles
-{
-    public:
-    GameClient* game;
-    std::vector<Particle> HandledParticles;
-    Particles();
-    ~Particles();
-    Particles(GameClient* game);
-
-    void Clear();
-    void Update();
-    void Quit();
-
-    void CreateParticles(ParticleEffect effect);
-    void CreateParticles(
+ParticleEffect CreateParticleEffect(
         int amount = 0,
         Vector2 impact = {0, 0},
         Vector2 direction = {0, 0},
@@ -77,6 +61,24 @@ class Particles
         float lifetime_variety = 0,
         float color_variety = 0,
         float velocity_variety = 0);
+
+#define RESPAWN_PARTICLE_EFFECT CreateParticleEffect(20, {0,0}, {0,0}, 1.5f, 200.0f, 100.0f, 6.0f, {12, 232, 78, 255}, 360.0f, 25.0f, 2.0f, 25.0f, 1.25f, 0.25f, 50.0f);
+#define BULLET_PARTICLE_EFFECT CreateParticleEffect(3, {0}, {0}, 0.4f, 500.0f, 550.0f, 2.0f, GRAY, 35.0f, 1.0f, 1.0f, 50.0f, 0.1f, 0.1f, 50.0f);
+
+class Particles
+{
+    public:
+    GameClient* game;
+    std::vector<Particle> HandledParticles;
+    Particles();
+    ~Particles();
+    Particles(GameClient* game);
+
+    void Clear();
+    void Update();
+    void Quit();
+
+    void CreateParticles(ParticleEffect effect);
 };
 
 

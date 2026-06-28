@@ -54,6 +54,8 @@ struct WeaponData
     float radius = 0.0f;
     float height = 0.0f;
 
+    bool shake_camera = false;
+
     bool operator==(const WeaponData& weapon_data) const = default;
 };
 #pragma pack(pop)

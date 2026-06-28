@@ -106,6 +106,8 @@ void ServerResources::Load()
                 wep.radius = data["radius"].get<float>();
             if (data.count("height"))
                 wep.height = data["height"].get<float>();
+            if (data.count("shake_camera"))
+                wep.shake_camera = data["shake_camera"].get<bool>();
 
             NewWeapons.insert({p, wep});
             g.close();

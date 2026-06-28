@@ -66,7 +66,7 @@ bool ProjectileWeapon::CanAttack()
 {
     if (!Weapon::CanAttack())
         return false;
-    if (this->Ammo <= 0)
+    if (this->Ammo != -1 && this->Ammo == 0)
         return false;
     return true;
 }
@@ -85,10 +85,11 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
     Weapon::Attack(attackInfo);
 
     AnimationEvent event;
-    event.type = SoundAnimationEvent;
+    event.type = ParticleAndSoundAnimationEvent;
     event.use_position = false;
     event.player_id = this->inventory->Owner->PlayerID;
     event.position = this->inventory->Owner->GetCenter();
+
     event.sound_effect =
     {
         "",
@@ -97,11 +98,15 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
     };
     memcpy(&event.sound_effect,this->WeaponData.sound,32);
 
+    event.particle_effect = BULLET_PARTICLE_EFFECT;
+
     if (inventory->game->IsClient)
     {
         GameClient* game_client = (GameClient*) inventory->game;
         game_client->MainClient.AttackWithWeapon(attackInfo);
         game_client->MainAnimator.Animate(event);
+        if (WeaponData.shake_camera)
+            game_client->MainCamera.ShakeCamera(WeaponData.intensity);
     } else
     {
         GameServer* game_server = (GameServer*) inventory->game;
@@ -114,7 +119,7 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
             if (WeaponData.angle_range > 0)
             {
                 Angle -= WeaponData.angle_range / 2.0f;
-                Angle += (WeaponData.angle_range / WeaponData.shots) / 2.0f;
+                Angle += (WeaponData.angle_range / WeaponData.shots) * i;
             }
 
             game_server->AddBullet(BulletData{
@@ -130,8 +135,8 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
             });
         }
     }
-
-    this->Ammo -= 1;
+    if (this->Ammo > 0)
+        this->Ammo -= 1;
 }
 
 void ProjectileWeapon::Update()
@@ -299,6 +304,10 @@ void Inventory::Reload()
         return;
     if (IsReloading)
         return;
+    if (Weapons[EquippedItemIdx]->WeaponData.type != PROJECTILE)
+        return;
+    if (Weapons[EquippedItemIdx]->WeaponData.ammo == -1)
+        return;
     if (game->IsClient)
         ((GameClient*)game)->MainClient.ReloadWeapon();
     this->ReloadTime = 0.5f;
@@ -348,7 +357,7 @@ void Inventory::Update()
             }
         }
 
-        if (IsMouseButtonPressed(0) && Owner->IsLocalPlayer() && Owner->CurrentState.health > 0 && !IsReloading)
+        if (IsMouseButtonDown(0) && Owner->IsLocalPlayer() && Owner->CurrentState.health > 0 && !IsReloading)
         {
             Attack(((GameClient*)game)->MainCamera.GetWorldMousePos());
         }
@@ -359,7 +368,7 @@ void Inventory::Update()
         {
             GameClient* game_c = (GameClient*)game;
 
-            WeaponRenderRot = LerpAngle(WeaponRenderRot, Owner->CurrentState.rotation, 24.0f * game->GetDeltaTime());
+            WeaponRenderRot = LerpAngle(WeaponRenderRot, Owner->CurrentState.rotation, 100.0f * game->GetDeltaTime());
 
             Vector2 offset = {
                 cosf(WeaponRenderRot * DEG2RAD) * 100.0f,

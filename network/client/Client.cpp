@@ -231,6 +231,8 @@ void Client::SendPacket(Packet myPacket)
         ENetPacket* packet = enet_packet_create(&myPacket, sizeof(myPacket), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(Peer, 0, packet);
         enet_host_flush(Host);
+
+        // typing is awesome and cool, the brown fox jumped over the sleeping goblin or sum shi like that idk i lowk forgor quiet fox
     }
 }
 

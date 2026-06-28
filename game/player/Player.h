@@ -101,7 +101,6 @@ public:
     float DashCharge = 0.0f;
 
     bool IsDashing = false;
-    int32_t ZoneTarget = -1;
     double LastMovementAttack = 0.0f;
 
     Vector2 LastGhostPos{0,0};
