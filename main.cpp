@@ -87,7 +87,7 @@ void client() {
 
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(LIGHTGRAY);
+        ClearBackground(BLACK);
 
         if (IsKeyPressed(KEY_M))
         {

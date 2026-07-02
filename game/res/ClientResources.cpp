@@ -3,6 +3,8 @@
 //
 
 #include "ClientResources.h"
+
+#include <filesystem>
 #include <iostream>
 
 #include "rlgl.h"
@@ -26,25 +28,31 @@ void ClientResources::Load()
 {
     DefaultShader = Shader{rlGetShaderIdDefault(), rlGetShaderLocsDefault()};
     Unload();
-    FilePathList List = LoadDirectoryFiles(".\\assets");
-    for (int i = 0; i < List.count; i++)
+    for (const auto & entry : filesystem::recursive_directory_iterator("assets/"))
     {
-        string fn = List.paths[i];
-        if (fn.ends_with(".png") || fn.ends_with(".jpg") || fn.ends_with(".jpeg"))
-            Textures[string(GetFileNameWithoutExt(fn.c_str()))] = LoadTexture(fn.c_str());
-        if (fn.ends_with(".glsl"))
+        try
         {
-            string fn_without_ext = string(GetFileNameWithoutExt(fn.c_str()));
-            bool FragmentShader = true;
-            if (fn_without_ext.ends_with("_vert"))
-                FragmentShader = false;
-            Shader TheShader = LoadShader((FragmentShader ? "" : fn).c_str(), (FragmentShader ? fn : "").c_str());
-            if (IsShaderValid(TheShader))
-                Shaders[fn_without_ext.substr(0, fn_without_ext.size()-5)] = TheShader;
-            else
-                cout << "WARNING: FAILED TO LOAD SHADER!!!!!!!!!\n";
+            string fn = entry.path().string();
+            if (fn.ends_with(".png") || fn.ends_with(".jpg") || fn.ends_with(".jpeg"))
+                Textures[string(GetFileNameWithoutExt(fn.c_str()))] = LoadTexture(fn.c_str());
+            if (fn.ends_with(".glsl"))
+            {
+                string fn_without_ext = string(GetFileNameWithoutExt(fn.c_str()));
+                bool FragmentShader = true;
+                if (fn_without_ext.ends_with("_vert"))
+                    FragmentShader = false;
+                Shader TheShader = LoadShader((FragmentShader ? "" : fn).c_str(), (FragmentShader ? fn : "").c_str());
+                if (IsShaderValid(TheShader))
+                    Shaders[fn_without_ext.substr(0, fn_without_ext.size()-5)] = TheShader;
+                else
+                    cout << "WARNING: FAILED TO LOAD SHADER\n";
+            }
+        } catch (...)
+        {
+            cout << "WARNING: CLIENTRESOURCES: Failed to read " << entry << "\n";
         }
     }
+
 }
 
 void ClientResources::Unload()

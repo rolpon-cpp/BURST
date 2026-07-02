@@ -3,7 +3,6 @@
 //
 
 #include "Game.h"
-#include <iostream>
 #include <ostream>
 #include "../world/WorldMap.h"
 #include "../../network/Utils.h"
@@ -42,22 +41,33 @@ void Game::AddBullet(Bullet b)
     {
         b.MyBulletData.id = next_bullet_id;
         b.MyBulletData.timestamp = GetServerTime();
+        Bullets[next_bullet_id] = b;
+    } else
+    {
+        bool found = false;
+
+        for (auto &[name,value] : Bullets)
+        {
+            if (name == b.MyBulletData.client_id)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            b.MyBulletData.client_id = next_bullet_id;
+            Bullets[b.MyBulletData.client_id] = b;
+        }
     }
-    Bullets[IsClient ? b.MyBulletData.id : next_bullet_id] = b;
-    if (!IsClient)
-        next_bullet_id += 1;
+    next_bullet_id += 1;
 }
 
 void Game::AddBullet(BulletData bd)
 {
-    if (!IsClient)
-    {
-        bd.id = next_bullet_id;
-        bd.timestamp = GetServerTime();
-    }
-    Bullets[IsClient ? bd.id : next_bullet_id] = Bullet(this, bd);
-    if (!IsClient)
-        next_bullet_id += 1;
+    Bullet b = Bullet(this, bd);
+    AddBullet(b);
 }
 
 void Game::Start(string IPAddress, int Port)

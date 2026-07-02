@@ -6,6 +6,8 @@
 #define ALLS_PLAYER_H
 #include <cstdint>
 #include <vector>
+
+#include "AdaptiveMusic.h"
 #include "raymath.h"
 #include "Weapon.h"
 
@@ -71,6 +73,7 @@ struct PlayerState {
     float health = 0;
     float speed = 0;
     WeaponState weapon_state = WeaponState{};
+    bool is_charging = false;
     double timestamp = 0;
     Vector2 GetCenter();
 };
@@ -85,6 +88,7 @@ class GameClient;
 class Player {
 
 public:
+    // Both sides
     Game *game;
     int32_t PlayerID = -1;
 
@@ -97,6 +101,7 @@ public:
     PlayerState LocalState = { 0 };
     std::vector<PlayerState> PreviousPlayerStates;
 
+    // Client-sided stuff
     int32_t DashedPlayerID = -1;
     float DashCharge = 0.0f;
 
@@ -107,9 +112,13 @@ public:
     std::vector<std::pair<PlayerState,double>> Ghosts;
 
     double DisplayHealth = 0;
+    float DashArrowTransparency = 0.0f;
+    float DashArrowMovement = 0.0f;
 
     float Points;
     std::vector<PlayerScoreFeedback> Feedback;
+
+    AdaptiveMusic MainAdaptiveMusic;
 
     Player();
     Player(float X, float Y, float Speed, Game* game);

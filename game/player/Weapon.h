@@ -12,12 +12,13 @@
 
 enum WeaponType
 {
-    NONE, PROJECTILE, MELEE,
+    NoneWeaponType, ProjectileWeaponType, MeleeWeaponType,
 };
 
 #pragma pack(push, 1)
 struct WeaponAttack
 {
+    uint64_t clientData;
     Vector2 origin;
     Vector2 target;
     int inventoryIdx;
@@ -28,7 +29,7 @@ struct WeaponAttack
 #pragma pack(push, 1)
 struct WeaponState
 {
-    WeaponType type = NONE;
+    WeaponType type = NoneWeaponType;
     uint8_t texture[32] = {};
     int inventoryIdx = -1;
     bool animating = false;
@@ -40,7 +41,7 @@ struct WeaponData
 {
     uint8_t texture[32] = {};
     uint8_t sound[32] = {};
-    WeaponType type = NONE;
+    WeaponType type = NoneWeaponType;
     float damage = 0.0f;
     float cooldown = 0.0f;
     float range = 0.0f;
@@ -103,8 +104,6 @@ public:
     std::shared_ptr<Weapon> Weapons[INVENTORY_SIZE];
 
     int EquippedItemIdx = -1;
-
-    float WeaponRenderRot = 0.0f;
 
     double ReloadTime = 0.0f;
     bool IsReloading = false;

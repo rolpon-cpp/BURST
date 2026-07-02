@@ -22,20 +22,29 @@ Sounds::Sounds(GameClient *game) {
 
     MaxSoundPoolSize = 10;
 
-    std::string path = "assets/";
-    for (const auto & entry : std::filesystem::directory_iterator(path)) {
-        std::string p = entry.path().filename().string();
-        if (p.ends_with(".mp3") || p.ends_with(".wav"))
+    for (const auto & entry : std::filesystem::recursive_directory_iterator ("assets/")) {
+        try
         {
-            Sound sound = LoadSound(entry.path().string().c_str());
-            string d = GetFileNameWithoutExt(("assets/"+p).c_str());
-            SFX.insert({d, sound});
-            std::vector<Sound> s = std::vector<Sound>();
-            CachedAliases[d] = s;
-        } else if (p.ends_with("music.mp3") || p.ends_with("music.wav"))
+            std::string p = entry.path().filename().string();
+            if (p.ends_with(".mp3") || p.ends_with(".wav"))
+            {
+                if (p.ends_with("music.mp3") || p.ends_with("music.wav"))
+                {
+                    string d = GetFileNameWithoutExt(entry.path().string().c_str());
+                    Music m = LoadMusicStream(entry.path().string().c_str());
+                    Musics.insert({d, m});
+                } else
+                {
+                    Sound sound = LoadSound(entry.path().string().c_str());
+                    string d = GetFileNameWithoutExt(entry.path().string().c_str());
+                    SFX.insert({d, sound});
+                    std::vector<Sound> s = std::vector<Sound>();
+                    CachedAliases[d] = s;
+                }
+            }
+        } catch (...)
         {
-            Music m = LoadMusicStream(entry.path().string().c_str());
-            Musics.insert({p, m});
+            cout << "WARNING: SOUNDS: Failed to read " << entry << "\n";
         }
     }
 }

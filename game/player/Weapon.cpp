@@ -100,6 +100,28 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
 
     event.particle_effect = BULLET_PARTICLE_EFFECT;
 
+    for (int i = 0; i < WeaponData.shots; i++)
+    {
+        float Angle = 180.0f - Vector2LineAngle(attackInfo.origin, attackInfo.target) * RAD2DEG;
+        if (WeaponData.angle_range > 0)
+        {
+            Angle -= WeaponData.angle_range / 2.0f;
+            Angle += (WeaponData.angle_range / WeaponData.shots) * i;
+        }
+
+        inventory->game->AddBullet(BulletData{
+            attackInfo.clientData + i, 0, this->inventory->Owner->PlayerID,
+            inventory->Owner->GetPlayerState(attackInfo.timestamp).GetCenter(),
+            Vector2Normalize({-cos(Angle * (2 * PI / 360)) * 100.0f,-sin(Angle * (2 * PI / 360)) * 100.0f}),
+            WeaponData.color[0], WeaponData.color[1], WeaponData.color[2],
+            WeaponData.speed,
+            WeaponData.radius,
+            WeaponData.height,
+            WeaponData.damage,
+            inventory->game->GetServerTime()
+        });
+    }
+
     if (inventory->game->IsClient)
     {
         GameClient* game_client = (GameClient*) inventory->game;
@@ -110,30 +132,7 @@ void ProjectileWeapon::Attack(WeaponAttack attackInfo)
     } else
     {
         GameServer* game_server = (GameServer*) inventory->game;
-
         game_server->MainServer.SendPacketToAll(ANIMATION, &event, sizeof(event), {this->inventory->Owner->PlayerID});
-
-        for (int i = 0; i < WeaponData.shots; i++)
-        {
-            float Angle = 180.0f - Vector2LineAngle(attackInfo.origin, attackInfo.target) * RAD2DEG;
-            if (WeaponData.angle_range > 0)
-            {
-                Angle -= WeaponData.angle_range / 2.0f;
-                Angle += (WeaponData.angle_range / WeaponData.shots) * i;
-            }
-
-            game_server->AddBullet(BulletData{
-                0, this->inventory->Owner->PlayerID,
-                inventory->Owner->GetPlayerState(attackInfo.timestamp).GetCenter(),
-                Vector2Normalize({-cos(Angle * (2 * PI / 360)) * 100.0f,-sin(Angle * (2 * PI / 360)) * 100.0f}),
-                WeaponData.color[0], WeaponData.color[1], WeaponData.color[2],
-                WeaponData.speed,
-                WeaponData.radius,
-                WeaponData.height,
-                WeaponData.damage,
-                game_server->GetServerTime()
-            });
-        }
     }
     if (this->Ammo > 0)
         this->Ammo -= 1;
@@ -173,7 +172,7 @@ void Inventory::SetItem(WeaponData newWeaponData, int Idx)
 {
     std::shared_ptr<Weapon> wep = nullptr;
 
-    if (newWeaponData.type == NONE)
+    if (newWeaponData.type == NoneWeaponType)
     {
         DropItem(Idx);
         return;
@@ -182,7 +181,7 @@ void Inventory::SetItem(WeaponData newWeaponData, int Idx)
     if (Weapons[Idx] != nullptr && Weapons[Idx]->WeaponData == newWeaponData)
         return;
 
-    if (newWeaponData.type == PROJECTILE)
+    if (newWeaponData.type == ProjectileWeaponType)
         wep = make_shared<ProjectileWeapon>(this, newWeaponData);
     else
         wep = make_shared<Weapon>(this, newWeaponData);
@@ -273,6 +272,7 @@ void Inventory::Attack(int Idx, Vector2 Target)
     if (Idx < 0 || Idx >= INVENTORY_SIZE)
         return;
     WeaponAttack attackInfo = {
+        game->next_bullet_id,
         Owner->GetCenter(),
         Target,
         Idx,
@@ -304,7 +304,7 @@ void Inventory::Reload()
         return;
     if (IsReloading)
         return;
-    if (Weapons[EquippedItemIdx]->WeaponData.type != PROJECTILE)
+    if (Weapons[EquippedItemIdx]->WeaponData.type != ProjectileWeaponType)
         return;
     if (Weapons[EquippedItemIdx]->WeaponData.ammo == -1)
         return;
@@ -325,7 +325,7 @@ void Inventory::Update()
     {
         this->ReloadTime -= game->GetDeltaTime();
     }
-    if (IsReloading && ReloadTime <= 0.0f && IsHoldingItem() && Weapons[EquippedItemIdx]->WeaponData.type == PROJECTILE)
+    if (IsReloading && ReloadTime <= 0.0f && IsHoldingItem() && Weapons[EquippedItemIdx]->WeaponData.type == ProjectileWeaponType)
     {
         ((ProjectileWeapon*)Weapons[EquippedItemIdx].get())->Ammo = Weapons[EquippedItemIdx]->WeaponData.ammo;
         this->ReloadTime = 0;
@@ -368,18 +368,16 @@ void Inventory::Update()
         {
             GameClient* game_c = (GameClient*)game;
 
-            WeaponRenderRot = LerpAngle(WeaponRenderRot, Owner->CurrentState.rotation, 100.0f * game->GetDeltaTime());
-
             Vector2 offset = {
-                cosf(WeaponRenderRot * DEG2RAD) * 100.0f,
-                sinf(WeaponRenderRot * DEG2RAD) * 100.0f
+                cosf(Owner->CurrentState.rotation * DEG2RAD) * 100.0f,
+                sinf(Owner->CurrentState.rotation * DEG2RAD) * 100.0f
             };
 
             Texture2D& g = game_c->MainResources.GetTexture(c);
-            DrawTexturePro(g, {0, 0, (float) g.width, (float) g.height * (abs(WeaponRenderRot) > 90.0f ? -1.0f : 1.0f)}, {
+            DrawTexturePro(g, {0, 0, (float) g.width, (float) g.height}, {
                 Owner->GetCenter().x - offset.x, Owner->GetCenter().y - offset.y,
                 (float)g.width * 3.0f, (float)g.height * 3.0f,
-            }, {g.width * 1.5f, g.height * 1.5f}, WeaponRenderRot, WHITE);
+            }, {g.width * 1.5f, g.height * 1.5f}, Owner->CurrentState.rotation, WHITE);
         }
     }
 
@@ -409,7 +407,7 @@ void Inventory::SetCharacterWeaponState()
         char texture[32];
         texture[0] = '\0';
         Owner->CurrentState.weapon_state = {
-            NONE,
+            NoneWeaponType,
             {},
             -1,
             false

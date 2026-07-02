@@ -29,10 +29,12 @@ void ServerResources::Load()
 {
      unordered_map<std::string, WeaponData> NewWeapons;
     std::string path = "assets/weapons";
-    for (const auto & entry : fs::directory_iterator(path)) {
+    for (const auto & entry : fs::recursive_directory_iterator(path)) {
         try
         {
             std::string p = entry.path().filename().string();
+            if (!p.ends_with(".json"))
+                continue;
             p.erase(p.end() - 5, p.end());
             std::ifstream g(entry.path().c_str());
             if (!g.is_open()) {
@@ -75,7 +77,7 @@ void ServerResources::Load()
                 }
                 if (str_type == "projectile")
                 {
-                    wep.type = PROJECTILE;
+                    wep.type = ProjectileWeaponType;
                 }
             }
 

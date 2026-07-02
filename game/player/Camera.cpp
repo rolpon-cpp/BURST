@@ -54,8 +54,47 @@ void BurstCamera::ShakeCamera(float Intensity)
     CameraShakeIntensity = Intensity;
 }
 
+void BurstCamera::Background()
+{
+    float BackgroundDepth = 3;
+    float BackgroundGridSize = 36;
+    float ParallaxCamX = CameraPos.x / BackgroundDepth;
+    float ParallaxCamY = CameraPos.y / BackgroundDepth;
+    for (int i = -1; i < round(GetRenderHeight() / BackgroundGridSize) + 1; i++)
+    {
+        int y = (int)(ParallaxCamY / BackgroundGridSize);
+        DrawLineEx({CameraPos.x - GetRenderWidth()/2.0f, ((y + i) * BackgroundGridSize) - ParallaxCamY + CameraPos.y - GetRenderHeight()/2.0f}, {
+                       (float)GetRenderWidth() + CameraPos.x - GetRenderWidth()/2.0f,
+                       ((y + i) * BackgroundGridSize) - ParallaxCamY + CameraPos.y - GetRenderHeight()/2.0f
+                   }, 7, ColorBrightness(WHITE, -0.5f));
+    }
+
+    for (int i = -1; i < round(GetRenderWidth() / BackgroundGridSize) + 1; i++)
+    {
+        int x = (int)(ParallaxCamX / BackgroundGridSize);
+        DrawLineEx({((x + i) * BackgroundGridSize) - ParallaxCamX + CameraPos.x - GetRenderWidth()/2.0f, CameraPos.y - GetRenderHeight()/2.0f}, {
+                       ((x + i) * BackgroundGridSize) - ParallaxCamX + CameraPos.x - GetRenderWidth()/2.0f,
+                       (float)GetRenderHeight() + CameraPos.y - GetRenderHeight()/2.0f
+                   }, 7, ColorBrightness(WHITE, -0.5f));
+        DrawLineEx({((x + i) * BackgroundGridSize) - ParallaxCamX + CameraPos.x - GetRenderWidth()/2.0f, CameraPos.y - GetRenderHeight()/2.0f}, {
+                       ((x + i) * BackgroundGridSize) - ParallaxCamX + CameraPos.x - GetRenderWidth()/2.0f,
+                       (float)GetRenderHeight() + CameraPos.y - GetRenderHeight()/2.0f
+                   }, 3, ColorAlpha(WHITE, 0.5f));
+    }
+
+    for (int i = -1; i < round(GetRenderHeight() / BackgroundGridSize) + 1; i++)
+    {
+        int y = (int)(ParallaxCamY / BackgroundGridSize);
+        DrawLineEx({CameraPos.x - GetRenderWidth()/2.0f, ((y + i) * BackgroundGridSize) - ParallaxCamY + CameraPos.y - GetRenderHeight()/2.0f}, {
+                       (float)GetRenderWidth() + CameraPos.x - GetRenderWidth()/2.0f,
+                       ((y + i) * BackgroundGridSize) - ParallaxCamY + CameraPos.y - GetRenderHeight()/2.0f
+                   }, 3, ColorAlpha(WHITE, 0.5f));
+    }
+}
+
 void BurstCamera::Update()
 {
+
     if (CameraShakes > 0 && game->MainClient.GetServerTime() >= NextCameraShakeOffsetChange)
     {
         CameraShakeOffset = {(float)GetRandomValue(-70 * CameraShakeIntensity, 70 * CameraShakeIntensity), (float)GetRandomValue(-70 * CameraShakeIntensity, 70 * CameraShakeIntensity)};
@@ -88,6 +127,7 @@ void BurstCamera::Update()
 void BurstCamera::Start()
 {
     BeginMode2D(RaylibCamera);
+    Background();
 }
 
 void BurstCamera::Stop()

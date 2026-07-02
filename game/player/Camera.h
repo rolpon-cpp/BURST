@@ -24,6 +24,8 @@ class BurstCamera
 
     Camera2D RaylibCamera;
 
+    void Background();
+
 public:
 
     GameClient *game;

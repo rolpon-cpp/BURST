@@ -74,8 +74,9 @@ Player::Player(float X, float Y, float Speed, Game* game)
     DashCharge = 0.0f;
     CustomizedItems = PlayerCustomizedItems{};
     LastGhostPos = {0,0};
-
     inventory = Inventory(game, this);
+    if (IsLocalPlayer())
+        MainAdaptiveMusic = AdaptiveMusic(this);
 }
 
 Player::Player(PlayerState State, Game* game)
@@ -93,6 +94,8 @@ Player::Player(PlayerState State, Game* game)
     LastGhostPos = {0,0};
     CustomizedItems = PlayerCustomizedItems{};
     inventory = Inventory(game, this);
+    if (IsLocalPlayer())
+        MainAdaptiveMusic = AdaptiveMusic(this);
 }
 
 Player::Player()
@@ -200,6 +203,7 @@ Vector2 Player::ProcessInputs()
         MyPlayerDirection.y += 1;
     if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) && !IsDashing && ((GameClient*)game)->MainClient.GetServerTime() - LastMovementAttack >= 1)
     {
+        CurrentState.is_charging = true;
         DashCharge += game->GetDeltaTime() * 1.05f;
         if (DashCharge >= 1.0f)
             DashCharge = 1.0f;
@@ -225,6 +229,7 @@ Vector2 Player::ProcessInputs()
     } else
     {
         DashCharge = 0.0f;
+        CurrentState.is_charging = false;
     }
     MyPlayerDirection = Vector2Normalize(MyPlayerDirection);
     CurrentState.rotation = 180.0f - Vector2LineAngle(GetCenter(), ((GameClient*)game)->MainCamera.GetWorldMousePos()) * RAD2DEG;
@@ -352,6 +357,8 @@ void Player::Update()
 
     if (game->IsClient)
     {
+        MainAdaptiveMusic.Update();
+
         if (Vector2Distance({0,0},LocalState.velocity) >= 500.0f)
         {
             if (Vector2Distance(LocalState.GetCenter(), LastGhostPos) >= 10.0f)
@@ -373,9 +380,28 @@ void Player::Update()
         {
             float prog = (game->GetLocalTime() - time) / 0.075f;
             DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"),
-                {0, 0, 72.0f, 72.0f},
-                {state.position.x + 18.0f, state.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, state.rotation,
+                {0, 0, 18.0f, 18.0f},
+                {state.position.x + 18.0f, state.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, state.rotation - 90,
                 ColorAlpha(WHITE, prog * 0.3f));
+        }
+
+        if (CurrentState.is_charging)
+        {
+            GameClient* game_client = (GameClient*)game;
+            DashArrowTransparency = lerp(DashArrowTransparency, 0.5f, 1.5f * game->GetDeltaTime());
+            DashArrowMovement += 250.0f * DashCharge * game->GetDeltaTime();
+            Texture& ArrowTexture = game_client->MainResources.GetTexture("arrow");
+            DrawTexturePro(ArrowTexture, {
+                0.0f, DashArrowMovement,
+                (float) ArrowTexture.width,
+                ArrowTexture.height * 20.0f,
+            }, {LocalState.GetCenter().x, LocalState.GetCenter().y,
+                32.0f, 640.0f}, {
+                    16.0f, 640.0f}, LocalState.rotation - 90.0f, ColorAlpha(WHITE, DashArrowTransparency));
+        } else
+        {
+            DashArrowTransparency = 0.0f;
+            DashArrowMovement = 0.0f;
         }
 
         char p[32];
@@ -389,10 +415,12 @@ void Player::Update()
         DrawRectangleRounded({LocalState.position.x - 32 + (100 - healthSZ), LocalState.position.y - 17.5f, healthSZ, 12.5f}, 0.5f, 2, GREEN);
 
         DrawText(playerName.c_str(),LocalState.position.x + 18 - sz/2,LocalState.position.y - 37.5f, 20, BLACK);
-        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"), {0, 0, 72.0f, 72.0f}, {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation, WHITE);
+        DrawTexturePro(((GameClient*)game)->MainResources.GetTexture("player"), {0, 0, 18.0f, 18.0f},
+            {LocalState.position.x + 18.0f, LocalState.position.y + 18.0f, 36.0f, 36.0f}, {18.0f,18.0f}, LocalState.rotation - 90, WHITE);
     } else
     {
-        CurrentState.health += game->GetDeltaTime() * 1.25f;
+        if (CurrentState.health > 0)
+            CurrentState.health += game->GetDeltaTime() * 1.25f;
     }
 
     //std::cout << "DONE PROCESSING PLAYER!" << "\n" << std::flush;

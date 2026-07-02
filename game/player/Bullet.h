@@ -6,6 +6,7 @@
 #pragma pack(push, 1)
 struct BulletData
 {
+    uint64_t client_id = -1;
     uint64_t id = 0;
     int32_t owner_id = -1;
     Vector2 position = {0, 0};

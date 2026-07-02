@@ -83,7 +83,7 @@ void UI::Update()
         DrawRectangleRounded(UISlotRect,0.1f,2,
             ColorAlpha(BLACK, (i == game->MainPlayer.inventory.EquippedItemIdx ? 0.85f : 0.65f)));
 
-        if (game->MainPlayer.inventory.Weapons[i])
+        if (game->MainPlayer.inventory.Weapons[i] && game->MainPlayer.inventory.Weapons[i]->WeaponData.type != NoneWeaponType)
         {
             Texture& tex = game->MainResources.GetTexture(string((char*)game->MainPlayer.inventory.Weapons[i]->WeaponData.texture));
 
@@ -108,15 +108,7 @@ void UI::Update()
     }
 
     EndTextureMode();
-
-    BeginShaderMode(game->MainResources.GetShader("vignette"));
-
-    float VignetteTransparency = game->MainPlayer.DisplayHealth / 100.0f;
-    VignetteTransparency = 1.0f - VignetteTransparency;
-    SetShaderValue(game->MainResources.GetShader("vignette"), VignetteTransparencyUniformLoc, &VignetteTransparency, SHADER_UNIFORM_FLOAT);
-
     DrawTexturePro(UIRenderTexture.texture, {0, 0, 1280.0f, -720.0f}, {0, 0, (float)GetRenderWidth(), (float)GetRenderHeight()}, {0, 0}, 0, WHITE);
-    EndShaderMode();
     EndBlendMode();
 }
 

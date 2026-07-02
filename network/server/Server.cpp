@@ -164,7 +164,7 @@ void Server::PlayerCreateCharacter(ENetPeer* Peer)
     LatestPlayerID += 1;
     auto* newPlayer = new Player({
         LatestPlayerID, GetSpawnLocation(), {0, 0}, {0, 0}, 0, 100.0f,
-        550.0f, WeaponState{}, game->GetLocalTime()
+        550.0f, WeaponState{}, false, game->GetLocalTime()
     }, game);
     newPlayer->PlayerID = LatestPlayerID;
     newPlayer->LastState = newPlayer->CurrentState;
